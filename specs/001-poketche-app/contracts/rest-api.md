@@ -28,6 +28,7 @@ padrão (400 validação, 401/403 auth, 404, 409 conflito/estado inválido, 422 
 | POST `/me/seller` | Inicia onboarding de vendedor → redireciona ao KYC do provedor (FR-004) |
 | GET `/me/seller` | Status do KYC (pending/approved/rejected) |
 | POST `/me/push-tokens` | Registra token Expo |
+| GET/POST `/me/addresses`; PATCH/DELETE `/me/addresses/:id` | Endereços de entrega salvos p/ reuso no checkout (FR-073); editar/remover não afeta pedidos (endereço congelado no pedido) |
 
 ## Coleção
 | Método/Rota | Descrição |
@@ -75,25 +76,32 @@ Nota: nenhum endpoint recebe vídeo — gravações nunca saem do dispositivo (F
 | Método/Rota | Descrição |
 |---|---|
 | 🔓 GET `/listings?q=&set=&condition=&language=&price_min=&price_max=` | Busca/filtros, visitante incluso (FR-026) |
-| 🔓 GET `/listings/:id` | Detalhe + histórico de preço da carta (FR-043) |
-| POST `/listings` | Cria anúncio (422 se quantity > possuída; exige KYC aprovado) (FR-025) |
+| 🔓 GET `/listings/:id` | Detalhe + frete (fixo ou "incluso") + histórico de preço da carta (FR-043/FR-075) |
+| POST `/listings` | Cria anúncio com `shipping_price_cents` (0 = frete incluso) (422 se quantity > possuída; exige KYC aprovado) (FR-025) |
 | PATCH `/listings/:id` | Editar/desativar |
-| 💰 POST `/orders` | Compra: `{listing_id, quantity, payment_method}` → **reserva atômica** de `quantity` unidades no anúncio (409 se disponível insuficiente — compras simultâneas perdem antes de qualquer cobrança), cria pedido `pending_payment` com `expires_at` e snapshot da carta + cobrança no provedor (Pix QR/cartão); congela comissão (FR-027/FR-033) |
-| GET `/orders/:id` · GET `/orders?role=buyer|seller` | Acompanhamento com estados e prazos |
-| 💰 POST `/orders/:id/shipment` | Vendedor informa tracking_code → shipped (FR-029) |
-| 💰 POST `/orders/:id/confirm-receipt` | Comprador confirma → released (split libera net ao vendedor) |
-| 💰 POST `/orders/:id/cancel` | Cancelamento conforme estado/prazos (FR-031) |
+| GET/POST `/cart/items`; PATCH/DELETE `/cart/items/:id` | Carrinho multi-vendedor (FR-082): adicionar anúncios com quantidade; não reserva estoque; GET revalida disponibilidade/preço e sinaliza itens alterados/indisponíveis |
+| 💰 POST `/checkout` | Confirma o carrinho: `{payment_method, shipping_address_id | shipping_address}` (endereço salvo ou inline, com opção de salvar — FR-073; **congelado em cada pedido**, FR-074) → **reserva atômica** de todas as unidades em todas as listings (tudo ou nada; 409 apontando itens insuficientes — compras simultâneas perdem antes de qualquer cobrança), cria **um pedido por vendedor** (itens agrupados, frete = maior entre os anúncios do vendedor) em `pending_payment` com `expires_at` e snapshots + **cobrança única do total** no provedor com split multi-recebedor (Pix QR/cartão); congela comissão sobre os itens (FR-027/FR-028/FR-033/FR-075/FR-082) |
+| GET `/orders/:id` · GET `/orders?role=buyer|seller` | Acompanhamento com estados, itens, prazos, transportadora/código/link de rastreamento; `shipping_address` só p/ comprador e vendedor do pedido enquanto em andamento (FR-074) |
+| 💰 POST `/orders/:id/shipment` | Vendedor confirma envio: `{carrier: correios\|jadlog\|loggi\|other, carrier_name?, tracking_code}` — carrier e tracking obrigatórios (400 se ausentes; carrier_name exigido p/ other) → shipped (FR-029/FR-076) |
+| 💰 POST `/orders/:id/confirm-receipt` | Comprador confirma → released (split libera net = item − comissão + frete ao vendedor, FR-028) |
+| 💰 POST `/orders/:id/cancel` | Comprador cancela livremente enquanto `paid` (não enviado); reembolso do total do pedido (itens + frete) — reembolso parcial da cobrança do checkout quando havia outros pedidos (FR-031/FR-077) |
 | 💰 POST `/orders/:id/dispute` | Abre disputa, suspende liberação (FR-032) |
 | POST `/disputes/:id/evidence` | Solicita URL assinada de upload (bucket R2 **privado**, separado do cache público) → registra anexo; partes da disputa apenas |
 | GET `/disputes/:id/evidence` | Lista anexos com URLs assinadas de curta duração — acesso restrito às partes e ao papel `admin` |
-| POST `/orders/:id/review` | Avaliação 1–5 (FR-036) |
-| 🔓 GET `/sellers/:id/reputation` | Reputação pública |
+| POST `/orders/:id/review` | Avaliação mútua 1–5: cada parte (comprador e vendedor) avalia a outra, uma por pedido (409 se repetida) (FR-036) |
+| 🔓 GET `/users/:id/reputation` | Reputação pública — de vendedor (exibida nos anúncios/perfil) e de comprador (perfil) (FR-036) |
 
-## Admin (papel `admin` no Supabase; back-office interno de disputas)
+## Admin (papel `admin` no Supabase; back-office interno de disputas — US11)
+
+> Todas as rotas exigem o papel `admin` (403 caso contrário — FR-078) e aplicam a regra de
+> conflito de interesse: 403 se o admin for comprador ou vendedor do pedido (FR-081).
+
 | Método/Rota | Descrição |
 |---|---|
-| GET `/admin/disputes?status=open` | Fila de disputas com evidências das partes |
-| 💰 POST `/admin/disputes/:id/resolve` | `{outcome: refund_buyer | release_seller, notes}` → executa via PaymentProvider + auditoria (FR-032) |
+| GET `/admin/disputes?status=open|awaiting_parties` | Fila ordenada por abertura, com tempo decorrido vs. prazos-alvo (1º resposta 1 dia útil / resolução 7d — SC-023) |
+| GET `/admin/disputes/:id` | Detalhes do pedido (item/frete/comissão, estados, prazos, endereço) + evidências das partes (FR-078) |
+| POST `/admin/disputes/:id/request-info` | `{parties: [buyer|seller], note}` → notifica as partes com prazo de resposta (3d); disputa → `awaiting_parties`; expirado, decisão segue com o disponível (FR-080) |
+| 💰 POST `/admin/disputes/:id/resolve` | `{outcome: refund_buyer | release_seller, notes}` → refund do total (item + frete) ou liberação do net via PaymentProvider + auditoria com `resolved_by` + notificação às partes (FR-032/FR-079) |
 
 ## Webhooks (entrada, assinados)
 | Rota | Descrição |
@@ -105,5 +113,7 @@ Nota: nenhum endpoint recebe vídeo — gravações nunca saem do dispositivo (F
 recentes/populares → cartas em coleções/wishlists/anúncios → restante) · `price-refresh`
 (diário, FR-013) · `price-snapshot` (após refresh,
 FR-037) · `collection-value-snapshot` (diário) · `wishlist-alerts` (após refresh, FR-046/047) ·
-`order-deadlines` (expiração de `pending_payment` com devolução da reserva ao anúncio; liberação
-automática 7d pós-entrega; cancelamento por não-envio 5 dias úteis, FR-030/031) · `payments-reconciliation` (reconciliação com o provedor).
+`order-deadlines` (expiração de checkouts `pending_payment` cancelando os pedidos do grupo e devolvendo todas as reservas aos anúncios; liberação
+automática 21d corridos pós-postagem — sem integração de rastreio no MVP; cancelamento por
+não-envio 5 dias úteis; expiração do prazo de resposta em disputas `awaiting_parties`,
+FR-030/031/080) · `payments-reconciliation` (reconciliação com o provedor).

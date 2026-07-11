@@ -27,7 +27,8 @@ pnpm --filter mobile test
 ```
 
 Critério: 100% verde antes de qualquer merge que toque dinheiro; invariante
-`item_price = commission + seller_net` coberta por propriedade nos testes de unidade (SC-010).
+`total = item_price + shipping` e `seller_net = item_price − commission + shipping` (comissão só
+sobre o item) cobertas por propriedade nos testes de unidade (SC-010).
 
 ## Validação end-to-end por user story
 
@@ -40,8 +41,9 @@ Critério: 100% verde antes de qualquer merge que toque dinheiro; invariante
 | US4 Dashboard | Coleção com fixtures variadas; abrir stats | Total = Σ preço×qtd; distribuições, rankings, completude batem com fixtures |
 | US9 Wishlists | Criar wishlist com alvo acima do preço; baixar preço via fixture; rodar `wishlist-alerts` 2× | 1 push recebido (Expo), sem repetição (SC-018); indicador de alvo na tela; carta possuída sinalizada |
 | US5 Scanner | Dev build em aparelho físico: sessão sobre ~10 cartas reais misturando PT e EN (com foil e duplicata); interromper app no meio; gravar uma sessão | ≥80% identificadas (SC-006), captura ≤2 s (SC-006a); idioma automático correto ≥90% e indeterminado → EN (SC-006f); resposta indica `method` (ocr/visual_match); foil → "a revisar"; duplicata incrementa; sessão recuperável (SC-006c); nada na coleção antes de confirmar (SC-006b); vídeo só no aparelho (SC-006e) |
-| US6 Marketplace | Dois usuários (vendedor com KYC sandbox aprovado): anunciar → comprar com Pix sandbox → tracking → confirmar recebimento | Estados pending_payment→paid→shipped→received→released; net = preço − comissão (SC-010); cada transição em `financial_audit_log` (SC-009); pagamento recusado não trava anúncio |
-| US6 Disputa | Pedido shipped → abrir disputa → resolver a favor do comprador | Liberação suspensa; reembolso via sandbox; auditoria completa |
+| US6 Marketplace | Três usuários (2 vendedores com KYC sandbox aprovado): anúncios com frete → carrinho com itens dos dois vendedores → checkout com endereço e Pix sandbox (total por vendedor exibido antes de confirmar) → 2 pedidos criados → envio com transportadora + tracking → confirmar recebimento → avaliação mútua; cancelar um pedido `paid` antes do envio | Um pedido por vendedor com fluxo independente (FR-082); cobrado = total exibido e net = itens − comissão + frete integral por pedido (SC-010); cancelamento pré-envio reembolsa só o pedido cancelado (reembolso parcial da cobrança); endereço congelado visível só ao vendedor do pedido (FR-074); avaliação mútua 1 por parte/pedido (FR-036); cada transição em `financial_audit_log` (SC-009); pagamento recusado não efetiva nenhum pedido nem trava anúncios |
+| US6 Disputa | Pedido shipped → abrir disputa → resolver a favor do comprador | Liberação suspensa; reembolso do total (item + frete) via sandbox; auditoria completa |
+| US11 Admin | Usuário com papel `admin`: fila → detalhes/evidências → solicitar informações às partes → decidir os dois desfechos; tentar operar disputa de pedido próprio e acessar sem o papel | Decisão executa via PaymentProvider com `resolved_by` em auditoria (SC-022); partes notificadas; 403 p/ admin que é parte (FR-081) e p/ usuário sem papel (FR-078) |
 | US7 Visitante | Sem sessão autenticada: abrir link público e `/listings`; tentar comprar | Navegação livre; ação restrita → fluxo de cadastro com retorno ao contexto (SC-013) |
 | US10 Catálogo | Sem conta: edições → grade → detalhe com preço/histórico; com conta: indicador de posse, ações rápidas e completude da edição com atalho p/ wishlist | Detalhe em ≤3 toques sem conta (SC-020); busca com filtros <1 s (SC-021); completude bate com a coleção; visitante não vê posse; ação restrita → cadastro (FR-026a) |
 

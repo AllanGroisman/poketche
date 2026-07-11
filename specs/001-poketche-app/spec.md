@@ -18,6 +18,13 @@
 - Q: Qual a profundidade da verificação de vendedor (documentos e dados bancários)? → A: Delegada ao provedor de pagamentos — o app coleta o mínimo e encaminha a verificação de identidade e dados bancários ao provedor, que cumpre o KYC regulatório; a plataforma armazena apenas o status da verificação.
 - Q: Qual a ordem de grandeza esperada para o primeiro ano? → A: Até ~10 mil usuários, coleções de até ~10 mil cartas e ~1 mil anúncios ativos; dimensionamento sem superengenharia, revisável com tração.
 
+### Session 2026-07-11
+
+- Q: Quem avalia quem após uma venda concluída? → A: Avaliação mútua — comprador e vendedor se avaliam (uma avaliação de cada parte por pedido) e ambos acumulam reputação visível.
+- Q: O comprador pode juntar vários anúncios em uma única compra (carrinho)? → A: Carrinho multi-vendedor — o comprador adiciona anúncios de vários vendedores; o checkout gera um pedido por vendedor (pagamento único do total), e cada pedido segue seu fluxo independente de envio/recebimento/liberação/disputa.
+- Q: O comprador pode cancelar um pedido pago antes do envio? → A: Sim — cancelamento livre pelo comprador enquanto o pedido está "pago" (não enviado), com reembolso total (itens + frete); após o envio, apenas via disputa.
+- Q: Em disputa "item diferente do anunciado" resolvida a favor do comprador, ele devolve a carta? → A: A critério do administrador — a decisão pode condicionar o reembolso à devolução (frete de devolução por conta do vendedor), registrado nas notas da resolução; sem fluxo automatizado de devolução no MVP.
+
 ## User Scenarios & Testing *(mandatory)*
 
 ### User Story 1 - Contas e perfis (Priority: P1)
@@ -177,26 +184,27 @@ O usuário inicia uma **sessão de escaneamento** que abre a câmera em modo con
 
 ### User Story 6 - Marketplace com pagamento e comissão (Priority: P5)
 
-Um vendedor com cadastro completo anuncia cartas da sua coleção definindo preço e condição. Compradores navegam, buscam e filtram anúncios e compram dentro do app. O pagamento é processado na plataforma e retido em custódia; o vendedor confirma o envio com código de rastreio; o comprador confirma o recebimento; o valor é então liberado ao vendedor menos a comissão percentual da plataforma. Há mecanismo de disputa quando a carta não chega ou vem diferente do anunciado, e vendedores acumulam reputação por avaliações.
+Um vendedor com cadastro completo anuncia cartas da sua coleção definindo preço, condição e frete (valor fixo ou incluso no preço). Compradores navegam, buscam e filtram anúncios e compram dentro do app por um carrinho que aceita anúncios de vários vendedores (o checkout gera um pedido por vendedor, com pagamento único), informando o endereço de entrega (com opção de reutilizar endereços salvos no perfil) e vendo o total — itens + frete por vendedor — antes de confirmar. O pagamento é processado na plataforma e retido em custódia; o vendedor confirma o envio informando a transportadora e o código de rastreio; o comprador confirma o recebimento; o valor é então liberado ao vendedor menos a comissão percentual da plataforma (que incide apenas sobre o valor do item — o frete é repassado integralmente). Há mecanismo de disputa quando a carta não chega ou vem diferente do anunciado, e vendedores acumulam reputação por avaliações.
 
 **Why this priority**: é o modelo de receita e a funcionalidade mais complexa; depende de contas (US1), coleção (US2) e se beneficia de preços (US3) como referência. Envolve dinheiro — sujeita às regras mais rígidas de validação e auditoria da constituição do projeto.
 
-**Independent Test**: pode ser testada de ponta a ponta com dois usuários: vendedor anuncia, comprador compra e paga, vendedor informa rastreio, comprador confirma recebimento, valor liberado menos comissão, avaliação registrada. Fluxo de disputa testado com um pedido não confirmado.
+**Independent Test**: pode ser testada de ponta a ponta com dois usuários: vendedor anuncia (com frete), comprador compra informando endereço e paga o total, vendedor confirma envio com transportadora e rastreio, comprador confirma recebimento, valor liberado (item menos comissão + frete), avaliação registrada. Fluxo de disputa testado com um pedido não confirmado.
 
 **Acceptance Scenarios**:
 
-1. **Given** um vendedor com cadastro completo e um item na coleção, **When** ele cria um anúncio com preço e condição, **Then** o anúncio fica visível e buscável no marketplace.
+1. **Given** um vendedor com cadastro completo e um item na coleção, **When** ele cria um anúncio com preço, condição e frete (valor fixo ou frete incluso no preço), **Then** o anúncio fica visível e buscável no marketplace, com o frete indicado.
 2. **Given** um comprador navegando, **When** ele busca e filtra (por nome, edição, condição, idioma, faixa de preço), **Then** vê apenas anúncios ativos compatíveis com os filtros.
 3. **Given** um anúncio aberto, **When** o comprador (ou visitante) visualiza seus detalhes, **Then** vê também o histórico de preços de mercado da carta, permitindo avaliar se o preço pedido está justo; se não houver histórico suficiente, a indicação "histórico indisponível" é exibida.
-4. **Given** um anúncio ativo, **When** o comprador conclui a compra e o pagamento é aprovado, **Then** o valor fica retido pela plataforma, o anúncio sai de circulação e ambos veem o pedido como "aguardando envio".
-5. **Given** um pagamento recusado ou falho, **When** a transação não é aprovada, **Then** nenhum valor é retido, o anúncio permanece ativo e o comprador é informado do motivo com opção de tentar novamente.
-6. **Given** um pedido pago, **When** o vendedor registra o código de rastreio, **Then** o pedido muda para "enviado" e o comprador vê o código.
-7. **Given** um pedido enviado, **When** o comprador confirma o recebimento, **Then** o valor é liberado ao vendedor menos a comissão percentual, e ambos podem se avaliar.
-8. **Given** um pedido enviado sem confirmação do comprador, **When** o prazo de confirmação automática expira após a entrega indicada pelo rastreio, **Then** o valor é liberado automaticamente ao vendedor menos a comissão.
-9. **Given** um pedido com problema (não chegou ou item diferente do anunciado), **When** o comprador abre uma disputa dentro do prazo, **Then** a liberação do valor é suspensa até a resolução, com espaço para ambas as partes apresentarem evidências.
-10. **Given** uma disputa resolvida a favor do comprador, **When** a decisão é registrada, **Then** o comprador é reembolsado e o vendedor não recebe o valor.
-11. **Given** uma venda concluída, **When** o comprador avalia o vendedor, **Then** a avaliação compõe a reputação pública do vendedor exibida em seus anúncios.
-12. **Given** qualquer movimentação financeira (pagamento, retenção, liberação, reembolso, comissão), **When** ela ocorre, **Then** fica registrada em trilha de auditoria com data, valores, partes e estado anterior/posterior.
+4. **Given** anúncios ativos de um ou mais vendedores, **When** o comprador os adiciona ao carrinho e inicia o checkout, **Then** informa o endereço de entrega (podendo selecionar um endereço salvo no perfil ou cadastrar um novo, com opção de salvá-lo para reuso) e vê o total da compra — itens + frete por vendedor — com a indicação de que será gerado um pedido (e um envio) por vendedor, antes de confirmar o pagamento.
+5. **Given** um checkout confirmado, **When** o pagamento único é aprovado, **Then** o valor total fica retido pela plataforma, um pedido é criado por vendedor (cada um com seus itens, frete e endereço congelados), as unidades saem de circulação e cada vendedor passa a ver o endereço de entrega do seu pedido; a partir daí cada pedido segue fluxo independente de envio, recebimento, liberação e disputa.
+6. **Given** um pagamento recusado ou falho, **When** a transação não é aprovada, **Then** nenhum valor é retido, o anúncio permanece ativo e o comprador é informado do motivo com opção de tentar novamente.
+7. **Given** um pedido pago, **When** o vendedor confirma o envio informando a transportadora (Correios, Jadlog, Loggi ou outra) e o código de rastreio — ambos obrigatórios —, **Then** o pedido muda para "enviado" e o comprador vê a transportadora, o código e um link de rastreamento.
+8. **Given** um pedido enviado, **When** o comprador confirma o recebimento, **Then** o valor é liberado ao vendedor — item menos a comissão percentual, mais o frete integral — e ambos podem se avaliar.
+9. **Given** um pedido enviado sem confirmação do comprador e sem disputa aberta, **When** o prazo de liberação automática contado a partir da data de postagem expira, **Then** o valor é liberado automaticamente ao vendedor.
+10. **Given** um pedido com problema (não chegou dentro do prazo ou item diferente do anunciado), **When** o comprador abre uma disputa dentro do prazo de liberação, **Then** a liberação do valor é suspensa até a resolução, com espaço para ambas as partes apresentarem evidências.
+11. **Given** uma disputa resolvida a favor do comprador, **When** a decisão é registrada, **Then** o comprador é reembolsado integralmente (item + frete) e o vendedor não recebe o valor.
+12. **Given** uma venda concluída, **When** comprador e vendedor se avaliam (uma avaliação de cada parte por pedido), **Then** a avaliação do vendedor compõe sua reputação pública exibida nos anúncios e perfil, e a do comprador compõe a reputação exibida em seu perfil.
+13. **Given** qualquer movimentação financeira (pagamento, retenção, liberação, reembolso, comissão), **When** ela ocorre, **Then** fica registrada em trilha de auditoria com data, valores, partes e estado anterior/posterior.
 
 ---
 
@@ -263,6 +271,27 @@ Qualquer pessoa — incluindo visitantes não autenticados — navega pelo catá
 
 ---
 
+### User Story 11 - Administração de disputas do marketplace (Priority: P5)
+
+Um administrador da plataforma (membro da equipe interna, com papel restrito) acessa a fila de disputas abertas do marketplace. Para cada disputa, visualiza os detalhes do pedido (itens, valores, estados, prazos, histórico) e as evidências enviadas por comprador e vendedor. Antes de decidir, pode solicitar informações adicionais às partes, que são notificadas e têm um prazo para responder. A decisão tem dois desfechos possíveis — reembolsar integralmente o comprador (item + frete) ou liberar o pagamento ao vendedor (item menos comissão, mais frete) — e fica registrada em trilha de auditoria com o administrador responsável. Administradores não podem operar disputas de pedidos em que sejam parte (comprador ou vendedor). A operação trabalha com prazos-alvo de primeira resposta e de resolução.
+
+**Why this priority**: é a contraparte operacional obrigatória do mecanismo de disputas da US6 (FR-032) — sem ela, disputas suspendem valores indefinidamente. Mesma prioridade do marketplace, do qual depende integralmente; deve estar disponível junto com a US6.
+
+**Independent Test**: pode ser testada com um pedido em disputa e um usuário com papel de administrador: percorrer a fila, abrir os detalhes e evidências, solicitar informação adicional a uma parte, registrar cada desfecho (reembolso e liberação) e conferir a auditoria; verificar que um administrador que é parte do pedido é impedido de operá-lo e que usuários sem o papel não acessam a área.
+
+**Acceptance Scenarios**:
+
+1. **Given** disputas abertas no marketplace, **When** um administrador acessa a área de administração, **Then** vê a fila de disputas abertas ordenada por data de abertura, com identificação do pedido, motivo e tempo decorrido.
+2. **Given** uma disputa na fila, **When** o administrador a abre, **Then** vê os detalhes do pedido (carta, valores de item/frete/comissão, estados e prazos) e todas as evidências enviadas por comprador e vendedor.
+3. **Given** uma disputa em análise, **When** o administrador solicita informações adicionais a uma ou ambas as partes, **Then** as partes são notificadas com o que foi pedido e o prazo de resposta, e a disputa fica marcada como aguardando as partes.
+4. **Given** uma solicitação de informações sem resposta, **When** o prazo de resposta expira, **Then** o administrador pode decidir com base nas evidências disponíveis.
+5. **Given** uma disputa analisada, **When** o administrador decide pelo reembolso, **Then** o comprador é reembolsado integralmente (item + frete), o vendedor não recebe o valor, as partes são notificadas e a decisão fica em auditoria com o administrador responsável.
+6. **Given** uma disputa analisada, **When** o administrador decide pela liberação, **Then** o vendedor recebe o valor (item menos comissão, mais frete), as partes são notificadas e a decisão fica em auditoria com o administrador responsável.
+7. **Given** uma disputa de um pedido em que o administrador é comprador ou vendedor, **When** ele tenta visualizá-la ou decidi-la, **Then** o sistema o impede, e a disputa só pode ser operada por outro administrador.
+8. **Given** um usuário sem o papel de administrador, **When** ele tenta acessar a área de administração, **Then** o acesso é negado.
+
+---
+
 ### Edge Cases
 
 - Fonte externa de preços fora do ar ou com formato alterado: últimas cotações conhecidas permanecem exibidas com data original; nenhum fluxo é bloqueado.
@@ -288,10 +317,17 @@ Qualquer pessoa — incluindo visitantes não autenticados — navega pelo catá
 - Sons de feedback desativados nas configurações durante uma sessão gravada: o vídeo é gravado sem o áudio dos feedbacks, refletindo o que o usuário experimentou.
 - Usuário anuncia mais cópias do que possui na coleção ou remove da coleção um item anunciado: o app impede quantidade anunciada maior que a possuída e alerta/desativa anúncios ao remover o item correspondente.
 - Duas compras simultâneas do mesmo anúncio de unidade única: apenas a primeira transação aprovada prevalece; a segunda é recusada antes da cobrança efetiva.
+- Item do carrinho fica indisponível (vendido/desativado/preço alterado) entre a adição e o checkout: o comprador é avisado antes de confirmar e pode remover o item ou aceitar o novo preço; o checkout nunca cobra valor diferente do exibido.
+- Pagamento único do carrinho falha ou expira: nenhum dos pedidos é efetivado e todas as unidades reservadas de todos os anúncios retornam à disponibilidade.
+- Frete de múltiplos anúncios do mesmo vendedor num pedido: cobrado um único frete por pedido (envio único), conforme a regra de combinação definida nas assumptions.
 - Pagamento aprovado mas falha subsequente do sistema: a transação nunca fica em estado inconsistente — ou avança com registro completo, ou é revertida com estorno e auditoria.
 - Comprador some após o envio: liberação automática ao vendedor após o prazo pós-entrega, desde que não haja disputa aberta.
 - Vendedor não envia dentro do prazo: comprador pode cancelar com reembolso integral.
 - Código de rastreio inválido ou sem movimentação: pedido sinalizado para acompanhamento e elegível a disputa.
+- Endereço salvo é editado ou removido do perfil após uma compra: pedidos existentes mantêm o endereço congelado no momento da compra, inalterado.
+- Transportadora "outra" (fora da lista conhecida): o pedido exibe o nome informado e o código de rastreio, sem link de rastreamento automático.
+- Partes não respondem à solicitação de informações da disputa dentro do prazo: o administrador decide com as evidências disponíveis; a disputa nunca fica bloqueada aguardando indefinidamente.
+- Todos os administradores disponíveis são parte do pedido em disputa: a disputa permanece na fila até outro administrador assumir; o sistema nunca permite a autodecisão.
 - Conta social sem e-mail compartilhado ou e-mail já cadastrado: fluxo de vinculação/erro claro, sem contas duplicadas silenciosas.
 - Link de coleção compartilhado e depois tornado privado: acessos subsequentes são negados com mensagem clara, sem vazar conteúdo ou metadados.
 - Dono oculta valores/quantidades com a visão pública já aberta em outro dispositivo: a próxima atualização/recarga da visão pública já respeita a nova configuração.
@@ -397,19 +433,35 @@ Qualquer pessoa — incluindo visitantes não autenticados — navega pelo catá
 
 **Marketplace e pagamentos**
 
-- **FR-025**: Users MUST be able to anunciar itens da própria coleção definindo preço e condição; a quantidade anunciada MUST NOT exceder a quantidade possuída.
+- **FR-025**: Users MUST be able to anunciar itens da própria coleção definindo preço, condição e frete — valor fixo definido pelo vendedor ou frete incluso no preço; a quantidade anunciada MUST NOT exceder a quantidade possuída.
 - **FR-026**: Users MUST be able to navegar, buscar e filtrar anúncios por nome, edição, condição, idioma e faixa de preço; a navegação, busca e filtragem MUST estar disponível também a visitantes não autenticados.
 - **FR-026a**: System MUST exigir conta para comprar, vender, manter coleção (criar/adicionar cartas) ou manter wishlists — inclusive quando a ação parte do explorador de catálogo; quando um visitante não autenticado tentar uma dessas ações, o app MUST conduzi-lo ao cadastro/login e retorná-lo ao ponto de origem após a autenticação.
 - **FR-027**: System MUST processar o pagamento dentro da plataforma, aceitando Pix e cartão de crédito, e reter o valor em custódia até a conclusão do fluxo.
-- **FR-028**: System MUST reter uma comissão percentual da plataforma sobre cada venda concluída, deduzida no momento da liberação ao vendedor.
-- **FR-029**: System MUST conduzir o pedido pelo fluxo: pago → envio confirmado pelo vendedor com código de rastreio → recebimento confirmado pelo comprador → valor liberado ao vendedor menos comissão.
-- **FR-030**: System MUST liberar automaticamente o valor ao vendedor quando o comprador não confirmar o recebimento dentro do prazo definido após a entrega indicada pelo rastreio, desde que não haja disputa aberta.
-- **FR-031**: System MUST permitir cancelamento com reembolso integral quando o vendedor não confirmar o envio dentro do prazo definido.
+- **FR-028**: System MUST reter uma comissão percentual da plataforma sobre cada venda concluída, deduzida no momento da liberação ao vendedor; a comissão incide apenas sobre o valor do item — o frete é repassado integralmente ao vendedor.
+- **FR-029**: System MUST conduzir o pedido pelo fluxo: pago → envio confirmado pelo vendedor com transportadora e código de rastreio → recebimento confirmado pelo comprador → valor liberado ao vendedor (item menos comissão, mais frete).
+- **FR-030**: System MUST liberar automaticamente o valor ao vendedor quando o comprador não confirmar o recebimento dentro do prazo definido contado a partir da data de postagem, desde que não haja disputa aberta; dentro desse prazo o comprador MUST poder abrir disputa por não recebimento.
+- **FR-031**: System MUST permitir ao comprador cancelar o pedido com reembolso integral (itens + frete) a qualquer momento enquanto o pedido estiver pago e não enviado — incluindo quando o vendedor não confirmar o envio dentro do prazo definido; após o envio, o cancelamento só ocorre via disputa.
 - **FR-032**: System MUST oferecer mecanismo de disputa (item não recebido ou diferente do anunciado) que suspende a liberação do valor até a resolução, com registro de evidências de ambas as partes e desfechos de reembolso ao comprador ou liberação ao vendedor.
 - **FR-033**: System MUST impedir venda duplicada do mesmo item: ao concluir uma compra, o anúncio (ou a unidade vendida) sai imediatamente de circulação.
 - **FR-034**: System MUST validar rigorosamente toda operação financeira antes de efetivá-la e tratar explicitamente todas as falhas, sem jamais deixar transações em estado inconsistente; operações sujeitas a repetição MUST ser idempotentes.
 - **FR-035**: System MUST registrar trilha de auditoria imutável de toda movimentação financeira (quem, o quê, quando, valores, estado anterior e posterior).
-- **FR-036**: System MUST calcular e exibir a reputação do vendedor a partir das avaliações de compras concluídas, visível em seus anúncios e perfil.
+- **FR-036**: System MUST permitir avaliação mútua após a conclusão do pedido — o comprador avalia o vendedor e o vendedor avalia o comprador, uma avaliação de cada parte por pedido — e calcular a reputação de cada um a partir das avaliações recebidas: a do vendedor visível em seus anúncios e perfil; a do comprador visível em seu perfil.
+- **FR-082**: System MUST oferecer um carrinho onde o comprador acumula anúncios de um ou mais vendedores; no checkout, o sistema MUST gerar um pedido por vendedor (itens do mesmo vendedor agrupados, com frete e endereço próprios), cobrar o pagamento único do total de todos os pedidos e, após a aprovação, conduzir cada pedido por fluxo independente (envio, recebimento, liberação, disputa e avaliação por pedido). Se o pagamento falhar, nenhum pedido é efetivado e todas as unidades reservadas retornam aos anúncios.
+
+**Envio e entrega**
+
+- **FR-073**: System MUST coletar o endereço de entrega do comprador no checkout, com opção de salvar endereços no perfil para reuso em compras futuras.
+- **FR-074**: System MUST congelar o endereço de entrega no pedido no momento da compra (edições ou remoções posteriores de endereços do perfil não o afetam); o endereço MUST ser visível apenas ao comprador e ao vendedor daquele pedido enquanto ele estiver em andamento — nunca a outros usuários ou visitantes (LGPD).
+- **FR-075**: System MUST exibir o total do pedido — valor do item + frete — antes da confirmação da compra; o valor cobrado MUST corresponder exatamente ao total exibido.
+- **FR-076**: System MUST exigir, na confirmação de envio, a transportadora (Correios, Jadlog, Loggi ou outra, com nome informado) e o código de rastreio — ambos obrigatórios; o comprador MUST ver transportadora, código e link de rastreamento no pedido.
+- **FR-077**: System MUST devolver ao comprador o valor total pago (item + frete) em qualquer reembolso — cancelamento ou disputa resolvida a seu favor.
+
+**Administração de disputas**
+
+- **FR-078**: System MUST oferecer aos administradores da plataforma (papel restrito à equipe interna) uma fila de disputas abertas com acesso aos detalhes do pedido e às evidências enviadas pelas partes; usuários sem o papel MUST NOT acessar a área.
+- **FR-079**: System MUST permitir ao administrador registrar o desfecho da disputa — reembolso integral ao comprador ou liberação ao vendedor — executando a movimentação financeira correspondente, notificando as partes e gravando em trilha de auditoria a decisão com o administrador responsável; o administrador MAY condicionar o reembolso à devolução do item (com frete de devolução por conta do vendedor), acompanhada manualmente e registrada nas notas da resolução — não há fluxo automatizado de devolução nesta fase.
+- **FR-080**: System MUST permitir ao administrador solicitar informações adicionais às partes antes de decidir, com notificação e prazo de resposta; expirado o prazo sem resposta, a decisão MUST poder ser tomada com as evidências disponíveis.
+- **FR-081**: System MUST impedir que um administrador visualize ou decida disputas de pedidos em que seja parte (comprador ou vendedor).
 
 ### Key Entities
 
@@ -427,10 +479,13 @@ Qualquer pessoa — incluindo visitantes não autenticados — navega pelo catá
 - **Gravação de Sessão**: vídeo local vinculado a uma sessão de escaneamento — visão da tela com molduras, animações, contadores e áudio dos feedbacks, com encerramento visual opcional; armazenado exclusivamente no dispositivo, com destinos possíveis: galeria, compartilhamento nativo ou descarte (sem afetar as capturas).
 - **Wishlist**: lista de desejos nomeada pertencente a um usuário, com configuração própria de notificações; um usuário pode ter várias.
 - **Item de Wishlist**: vínculo entre wishlist e carta do catálogo, com preço-alvo opcional e estado de notificação (última notificação enviada, alvo rearmado ou não); base dos indicadores de "atingiu o alvo" e da sinalização de "já na coleção".
-- **Anúncio**: oferta de venda de um item da coleção com preço, condição, quantidade e status (ativo, vendido, desativado).
-- **Pedido/Transação**: compra de um anúncio com estados (pago, enviado, recebido, liberado, cancelado, em disputa, reembolsado), valores (preço, comissão, líquido do vendedor), código de rastreio e prazos.
-- **Disputa**: contestação vinculada a um pedido, com motivo, evidências das partes, status e desfecho.
-- **Avaliação**: nota e comentário do comprador sobre o vendedor após conclusão do pedido; compõe a reputação.
+- **Anúncio**: oferta de venda de um item da coleção com preço, condição, quantidade, frete (valor fixo ou incluso no preço) e status (ativo, vendido, desativado).
+- **Carrinho**: acumulador de anúncios (com quantidades) de um ou mais vendedores, pertencente ao comprador; no checkout é convertido em um pedido por vendedor com pagamento único; itens indisponíveis são sinalizados antes da confirmação.
+- **Endereço de Entrega**: endereço salvo pelo usuário no perfil para reuso em compras; o pedido guarda uma cópia congelada no momento da compra.
+- **Pedido/Transação**: compra de um anúncio com estados (pago, enviado, recebido, liberado, cancelado, em disputa, reembolsado), valores (item, frete, total, comissão, líquido do vendedor), endereço de entrega congelado, transportadora, código de rastreio e prazos.
+- **Disputa**: contestação vinculada a um pedido, com motivo, evidências das partes, solicitações de informação adicional, status (aberta, aguardando as partes, resolvida) e desfecho com o administrador responsável.
+- **Administrador**: membro da equipe interna da plataforma com papel restrito; opera a fila de disputas (visualizar, solicitar informações, decidir); impedido de operar disputas de pedidos em que seja parte.
+- **Avaliação**: nota e comentário de uma parte sobre a outra após conclusão do pedido (comprador → vendedor e vendedor → comprador, uma de cada por pedido); compõe a reputação de quem a recebe.
 - **Registro de Auditoria**: entrada imutável descrevendo cada movimentação financeira com autor, ação, valores, timestamps e estados anterior/posterior.
 
 ## Success Criteria *(mandatory)*
@@ -452,7 +507,7 @@ Qualquer pessoa — incluindo visitantes não autenticados — navega pelo catá
 - **SC-007**: 100% dos fluxos do app são completáveis sem uso da câmera.
 - **SC-008**: Um comprador completa uma compra no marketplace (do anúncio ao pagamento confirmado) em menos de 3 minutos.
 - **SC-009**: 100% das movimentações financeiras possuem registro de auditoria completo; nenhuma transação termina em estado inconsistente nos testes de falha (pagamento recusado, interrupção no meio do fluxo, reenvio duplicado).
-- **SC-010**: O valor liberado ao vendedor é exatamente o preço de venda menos a comissão percentual em 100% das vendas concluídas.
+- **SC-010**: O valor liberado ao vendedor é exatamente o valor dos itens do pedido menos a comissão percentual, mais o frete integral, em 100% das vendas concluídas; o valor cobrado do comprador é exatamente o total (itens + fretes de todos os pedidos do checkout) exibido antes da confirmação.
 - **SC-011**: 90% dos usuários de teste completam o registro de uma carta e a leitura do valor da coleção sem ajuda na primeira tentativa.
 - **SC-012**: Um visitante sem conta abre um link de coleção pública e visualiza as cartas em menos de 5 segundos, sem nenhuma etapa de cadastro; 100% das visões públicas respeitam as configurações de visibilidade do dono nos testes.
 - **SC-013**: 100% das tentativas de compra, venda ou criação de coleção por visitantes não autenticados resultam em direcionamento ao cadastro/login, com retorno ao ponto de origem após a autenticação.
@@ -464,6 +519,8 @@ Qualquer pessoa — incluindo visitantes não autenticados — navega pelo catá
 - **SC-019**: 100% das cartas de wishlist já presentes na coleção aparecem sinalizadas, e o registro de uma carta em wishlist na coleção sempre dispara a pergunta de remoção (ou a remoção automática, quando ativada).
 - **SC-020**: Qualquer pessoa (com ou sem conta) chega da lista de edições ao detalhe de uma carta em no máximo 3 toques; 100% das cartas e edições do catálogo são acessíveis sem conta.
 - **SC-021**: 95% das buscas globais do catálogo (nome + filtros) exibem resultados em menos de 1 segundo; a visão de completude de uma edição reflete exatamente a contagem possuídas/faltantes da coleção do usuário em 100% dos testes.
+- **SC-022**: 100% das decisões de disputa registram em auditoria o administrador responsável, o desfecho e a movimentação financeira correspondente; nenhuma disputa é decidida por administrador que seja parte do pedido nos testes.
+- **SC-023**: 100% das disputas recebem primeira resposta da operação dentro do prazo-alvo e nenhuma permanece sem desfecho após o prazo-alvo de resolução (medido sobre a operação em produção; nos testes, os prazos disparam os indicadores de acompanhamento da fila).
 
 ## Assumptions
 
@@ -471,10 +528,17 @@ Qualquer pessoa — incluindo visitantes não autenticados — navega pelo catá
 - Os preços de referência vêm de fonte externa do mercado brasileiro de cartas como primária, com fallback por carta em fonte internacional (USD convertido diariamente a BRL) quando a carta não tem preço na primária ou a coleta falha; a fonte pode falhar ou mudar, por isso o sistema mantém cache e a última cotação conhecida como fallback (conforme constituição do projeto), sempre exibindo fonte e data da cotação.
 - O catálogo de cartas (nomes, edições, números, imagens oficiais) vem de fonte externa reconhecida de dados de Pokémon TCG, com atualização periódica para novas edições.
 - A escala de condição adotada é a de mercado: Mint, Near Mint, Excellent, Good, Played, Damaged.
-- Liberação automática ao vendedor ocorre 7 dias após a entrega indicada pelo rastreio sem confirmação do comprador e sem disputa aberta; o comprador pode abrir disputa dentro desse prazo.
-- O vendedor tem 5 dias úteis após o pagamento para confirmar o envio com rastreio; após isso o comprador pode cancelar com reembolso integral.
-- O envio físico é responsabilidade do vendedor via transportadora/Correios; a plataforma registra e exibe o código de rastreio, mas não gerencia logística.
-- Resolução de disputas nesta fase é feita por operação humana da plataforma com base nas evidências registradas; automação de disputas fica para fases futuras.
+- O sistema não tem integração com APIs de transportadoras nesta fase: a liberação automática não depende de detectar a entrega — ela conta a partir da confirmação de recebimento pelo comprador ou, na ausência dela, de **21 dias corridos a partir da data de postagem** informada pelo vendedor (prazo configurável pela operação, com margem para o trânsito postal), sem disputa aberta. O comprador pode abrir disputa por não recebimento dentro desse prazo. Integração com APIs de rastreio para detectar a entrega automaticamente fica registrada como evolução futura.
+- O vendedor tem 5 dias úteis após o pagamento para confirmar o envio com transportadora e rastreio. O comprador pode cancelar com reembolso integral (itens + frete) a qualquer momento antes do envio; estourado o prazo, o pedido é sinalizado como em atraso ao comprador, destacando a opção de cancelar.
+- O envio físico é responsabilidade do vendedor via transportadora (Correios, Jadlog, Loggi ou outra); a plataforma registra e exibe transportadora e código de rastreio, com link de rastreamento montado para as transportadoras conhecidas (para "outra", exibe nome e código sem link), mas não gerencia logística.
+- O frete é um valor fixo por anúncio definido pelo vendedor (ou incluso no preço); não há cálculo de frete por CEP, peso ou dimensões nesta fase.
+- Quando um pedido agrupa múltiplos anúncios do mesmo vendedor (carrinho), o frete do pedido é o **maior** valor de frete entre os anúncios agrupados (envio único — não soma fretes); anúncios com frete incluso não adicionam frete. Regra configurável pela operação.
+- O carrinho é local ao comprador e não reserva estoque: as unidades só são reservadas na confirmação do checkout, quando os pedidos são criados.
+- A comissão da plataforma incide apenas sobre o valor do item; o frete integra o valor retido em custódia e é repassado integralmente ao vendedor na liberação (e devolvido ao comprador em reembolsos).
+- O endereço de entrega congelado no pedido deixa de ser exibido ao vendedor após a conclusão do pedido (liberado/cancelado/reembolsado), permanecendo registrado no pedido para fins de auditoria e disputa (LGPD — minimização de exposição).
+- Resolução de disputas nesta fase é feita por administradores da plataforma (US11) com base nas evidências registradas; automação de disputas fica para fases futuras.
+- Prazos-alvo da operação de disputas (configuráveis): primeira resposta em até 1 dia útil e resolução em até 7 dias corridos da abertura; prazo de resposta das partes a solicitações de informação adicional: 3 dias corridos.
+- Devolução de item em disputa é decidida caso a caso pelo administrador (condição registrada nas notas da resolução, frete de devolução por conta do vendedor quando exigida); um fluxo automatizado de devolução com rastreio fica para fases futuras.
 - Preços de anúncio são livres (definidos pelo vendedor); a cotação de mercado e o histórico de preços servem apenas como referência exibida.
 - Anúncios com múltiplas unidades admitem compra parcial: o pedido tem quantidade própria; as unidades são reservadas na criação do pedido e devolvidas ao anúncio se o pagamento falhar ou expirar dentro da janela de pagamento do provedor.
 - O pedido guarda um retrato dos dados da carta e do preço no momento da compra: edições ou remoções posteriores do anúncio ou da coleção do vendedor não afetam pedidos em andamento.

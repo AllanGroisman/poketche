@@ -86,6 +86,24 @@
   cenários 6–7 da US5, SC-006f) e imagens correspondentes ao idioma com fallback EN
   (FR-011 estendido); propagado a data-model.md, contracts/rest-api.md e research.md.
   Todos os 16 itens continuam passando.
+- Atualização em 2026-07-11 (addendum US11 + envio/entrega): US11 (administração de
+  disputas, P5) com 8 cenários, FR-078–FR-081, SC-022/SC-023, entidade Administrador e
+  regra de conflito de interesse — fecha a lacuna do ator admin apontada pelo plan.md;
+  US6 detalhada com endereço de entrega (congelado, LGPD), frete fixo/incluso, total
+  item + frete, comissão só sobre o item, transportadora + rastreio obrigatórios e
+  liberação automática contada da postagem (sem integração de rastreio no MVP) —
+  FR-073–FR-077, FR-025/028/029/030 e SC-010 reescritos, cenários 4–13 da US6,
+  entidades Endereço de Entrega/Anúncio/Pedido/Disputa atualizadas, 5 edge cases e
+  8 assumptions novas/reescritas. Propagado a data-model.md, contracts/rest-api.md,
+  plan.md, research.md e quickstart.md. 16/16 itens seguem passando.
+- Sessão de clarificação executada em 2026-07-11 (4 perguntas): avaliação mútua
+  (FR-036 reescrito, review UNIQUE(order, rater), reputação de comprador), carrinho
+  multi-vendedor com um pedido por vendedor e pagamento único (FR-082, entidades
+  Carrinho, checkout/order_item no data model, POST /checkout nos contratos),
+  cancelamento livre pelo comprador antes do envio (FR-031 reescrito) e devolução em
+  disputa a critério do administrador (FR-079 estendido). Propagado a data-model.md,
+  contracts/rest-api.md, research.md (spike: cobrança única multi-recebedor + reembolso
+  parcial) e quickstart.md. 16/16 itens seguem passando.
 - Review final item a item em 2026-07-10: 16/16 itens atendidos e marcados.
   Observações (não bloqueantes): menções a Google/Apple e Pix/cartão são
   restrições de negócio/compliance definidas em clarificação, não detalhes de

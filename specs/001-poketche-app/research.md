@@ -168,7 +168,10 @@ recebedores (recipients) com KYC feito pelo provedor (clarificação de 2026-07-
 Pix + cartão de crédito, **split com comissão da plataforma** na transação, liberação ao vendedor
 controlada pelo fluxo de custódia do pedido (pago → enviado → recebido → liberado), reembolso via
 API em disputas. Webhooks assinados atualizam o estado do pedido; toda mutação financeira grava
-auditoria própria (constituição IV). Nunca processamos pagamento diretamente.
+auditoria própria (constituição IV). Nunca processamos pagamento diretamente. Envio sem
+integração de transportadoras no MVP: vendedor informa transportadora + rastreio e a liberação
+automática conta da postagem; **evolução futura registrada**: integração com APIs de rastreio
+(Correios/agregadores) para detectar a entrega automaticamente e encurtar a liberação.
 
 **Rationale**: a pesquisa aponta o Pagar.me como o gateway mais usado por marketplaces brasileiros
 para split, com regras customizáveis, API de recipients (onboarding/KYC de vendedores) e suporte
@@ -180,7 +183,15 @@ particular: (a) reter o valor na plataforma após a captura **sem** repasse auto
 recebedor; (b) liberar ao vendedor (menos comissão) apenas por comando nosso na confirmação de
 recebimento/prazo; (c) reembolsar integralmente durante disputa após a retenção; (d) prazos
 máximos de retenção permitidos pelo provedor compatíveis com nossos prazos (5 dias úteis de envio
-+ trânsito + 7 dias de confirmação). Se o split nativo não suportar liberação controlada, avaliar
++ 21 dias corridos pós-postagem — sem integração de rastreio, a liberação automática conta da
+postagem, não da entrega); (e) **frete no split**: o valor retido é o total (item + frete) e a
+comissão incide só sobre o item — validar regra de split com frete 100% ao vendedor na liberação
+e reembolso do total (item + frete) ao comprador; (f) **checkout multi-vendedor** (clarificação
+de 2026-07-11): uma cobrança única com split para múltiplos recebedores (um pedido por vendedor)
+e **reembolso parcial** dessa cobrança — necessário tanto para o cancelamento livre do comprador
+antes do envio quanto para disputa de um pedido do grupo sem afetar os demais. Se a cobrança
+única multi-recebedor não for viável, plano B: uma cobrança por pedido no mesmo checkout (pior
+UX no Pix — múltiplos QRs — mas mesmo contrato). Se o split nativo não suportar liberação controlada, avaliar
 o modo alternativo do próprio provedor (recebimento na conta da plataforma + transferência via
 API) ou o Mercado Pago — a decisão do provedor só é definitiva após este spike.
 
@@ -189,11 +200,12 @@ como assumido na spec), através de um **back-office mínimo**: endpoints `/admi
 (módulo `modules/admin/`), protegidos por papel `admin` (claim no Supabase Auth), com uma tela
 web interna simples servida pela API — fila de disputas abertas, evidências das partes, decisão
 (reembolsar comprador | liberar vendedor) que executa a ação financeira via `PaymentProvider` e
-grava auditoria. Sem ferramenta externa nem app mobile para admin no MVP. **Lacuna apontada na
-spec**: a spec descreve o mecanismo de disputa (FR-032) e assume resolução humana, mas **não
-especifica o ator administrador** (permissões, fluxo de decisão, prazos de resposta da operação)
-— recomenda-se um addendum de spec (user story administrativa) antes de implementar a US6;
-registrado também no plan.md.
+grava auditoria. Sem ferramenta externa nem app mobile para admin no MVP. **Ator administrador
+especificado na spec** (addendum de 2026-07-11): US11 com fila, detalhes/evidências, solicitação
+de informações às partes (prazo 3d), decisão (refund total item+frete | liberação do net) com
+auditoria e `resolved_by`, impedimento por conflito de interesse (FR-078–FR-081) e prazos-alvo
+da operação (1ª resposta 1 dia útil, resolução 7d — SC-022/SC-023); a lacuna anteriormente
+apontada aqui e no plan.md está resolvida.
 
 **Alternativas consideradas**: **Mercado Pago Split** (forte em Pix e marca conhecida; segunda
 opção — a abstração `PaymentProvider` mantém a troca barata); **Stripe Connect** (excelente API,
