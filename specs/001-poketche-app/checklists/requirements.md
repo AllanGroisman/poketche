@@ -64,6 +64,28 @@
   social Google + Apple (FR-002), KYC delegado ao provedor de pagamentos (FR-004,
   entidade Perfil de Vendedor) e escala ~10k usuários (Assumptions). Checklist
   100% aprovado. Pronto para `/speckit-plan`.
+- Atualização em 2026-07-11 (revisão do data model): ciclo de vida estoque×anúncio×
+  pedido (compra parcial, reserva atômica, snapshot no pedido), evidências de
+  disputa em bucket privado, upsert/unique de card_price e regra de variante no
+  alvo de wishlist; 3 assumptions novas na spec. 16/16 itens seguem passando.
+- Atualização em 2026-07-11 (revisão do plano): FR-013/SC-004/SC-016 ajustados
+  para cotações em dois níveis (diário prioritário + semanal rotativo). Lacuna
+  apontada (plan.md): a spec não especifica o ator administrador de disputas —
+  addendum recomendado antes da US6. 16/16 itens seguem passando.
+- Atualização em 2026-07-11: US10 (Explorador de Catálogo, P3) com 8 cenários,
+  FR-068–FR-072, FR-026a estendido (ações do catálogo), SC-020/SC-021, logo/data
+  na entidade Edição, edge cases de catálogo e assumptions; propagado a
+  data-model.md (logo_url), contracts/rest-api.md (busca unificada com filtros,
+  grade/completude da edição, anúncios por carta) e quickstart.md. 16/16 itens ok.
+- Atualização em 2026-07-11 (definições técnicas): catálogo multilíngue por carta
+  (card_translation EN+PT), preços com Liga Pokémon primária + fallback internacional
+  por carta com fonte/data exibidas (FR-012 estendido), pipeline de identificação
+  OCR-first + matching visual atrás de interface trocável; propagado a plan.md,
+  research.md, data-model.md, contracts/rest-api.md e quickstart.md. 16/16 itens ok.
+- Atualização em 2026-07-11: identificação automática de idioma no scanner (FR-067,
+  cenários 6–7 da US5, SC-006f) e imagens correspondentes ao idioma com fallback EN
+  (FR-011 estendido); propagado a data-model.md, contracts/rest-api.md e research.md.
+  Todos os 16 itens continuam passando.
 - Review final item a item em 2026-07-10: 16/16 itens atendidos e marcados.
   Observações (não bloqueantes): menções a Google/Apple e Pix/cartão são
   restrições de negócio/compliance definidas em clarificação, não detalhes de

@@ -20,9 +20,9 @@ isoladas em camadas de adapter com cache e fallback, conforme a constituição d
 
 **Language/Version**: TypeScript 5.x — app: React Native com Expo SDK (managed workflow); backend: Node.js 22 LTS
 
-**Primary Dependencies**: Expo (expo-camera / react-native-vision-camera, expo-notifications), Fastify (API REST), Prisma (ORM), Zod (validação), pg_boss (jobs agendados sobre Postgres)
+**Primary Dependencies**: Expo (react-native-vision-camera, expo-notifications), ML Kit (OCR on-device — spike), perceptual hashing/pgvector (fallback visual da identificação), Fastify (API REST), Prisma (ORM), Zod (validação), pg_boss (jobs agendados sobre Postgres)
 
-**Storage**: PostgreSQL 16 (dados próprios + cache de catálogo e cotações + snapshots de preço); imagens de cartas servidas pelas URLs da fonte de catálogo (sem re-hospedagem no MVP)
+**Storage**: PostgreSQL 16 (dados próprios + catálogo multilíngue sincronizado [EN+PT] + cotações e snapshots de preço); imagens de cartas atrás de um **proxy de imagens com cache próprio** (object storage **Cloudflare R2** — egress gratuito; Railway/Render não têm object storage nativo — + headers de cache longos): o explorador público expõe imagens de cartas que nenhum usuário possui, então servir direto das fontes não escala — job de **backfill** popula o cache priorizando (1º) thumbnails das edições mais recentes/populares (grade da edição é o caso mais sensível de volume), (2º) cartas presentes em coleções/wishlists/anúncios, (3º) restante do catálogo; imagem ainda não cacheada é buscada da fonte on-demand e persistida
 
 **Testing**: Vitest (unidade e integração no backend; obrigatório para preços, transações e comissões), Testing Library/Jest para componentes críticos do app; testes de integração da API com banco efêmero
 
@@ -30,7 +30,7 @@ isoladas em camadas de adapter com cache e fallback, conforme a constituição d
 
 **Project Type**: mobile-app + api (monorepo com `apps/mobile` e `apps/api`)
 
-**Performance Goals**: autocomplete < 1 s (SC-003); abertura de link público < 5 s (SC-012); captura do scanner ≤ 2 s por carta (SC-006a); ciclo diário de cotações cobre 100% do catálogo com preço (SC-004/SC-016)
+**Performance Goals**: autocomplete e busca do explorador < 1 s (SC-003/SC-021); abertura de link público < 5 s (SC-012); captura do scanner ≤ 2 s por carta (SC-006a); cotações em dois níveis — ciclo diário para o conjunto prioritário (cartas em coleções/wishlists/anúncios + edições recentes/populares, mesma priorização do backfill de imagens) e ciclo semanal rotativo para o restante do catálogo (SC-004/SC-016). Rotas públicas de catálogo (edições, grade da edição, busca, detalhe) são as de maior tráfego previsto (acessíveis sem autenticação): todas **paginadas** e com **cache HTTP** (`Cache-Control` + `ETag`, invalidado pelo sync diário; posse/quantidade do usuário autenticado vem em consulta separada para não quebrar o cache compartilhado)
 
 **Constraints**: dinheiro em centavos inteiros (nunca float); operações financeiras idempotentes com trilha de auditoria imutável; app plenamente utilizável sem câmera; vídeos de sessão nunca saem do dispositivo; LGPD (KYC delegado ao provedor de pagamentos)
 
@@ -85,14 +85,23 @@ apps/
 └── api/                         # Node.js + TypeScript (Fastify)
     ├── src/
     │   ├── modules/             # por domínio: auth/, catalog/, collection/, pricing/,
-    │   │                        # stats/, wishlist/, scanner/ (identificação), marketplace/,
-    │   │                        # notifications/, audit/
+    │   │                        # stats/, wishlist/, scanner/ (CardIdentifier: OCR-first
+    │   │                        # + matching visual, trocável), marketplace/,
+    │   │                        # notifications/, audit/, admin/ (back-office de disputas:
+    │   │                        # fila, evidências, decisão via PaymentProvider; papel
+    │   │                        # admin no Supabase; tela web interna servida pela API)
     │   ├── integrations/        # adapters isolados (constituição V):
-    │   │   ├── catalog/         # CatalogProvider → pokemontcg.io (+ sync p/ Postgres)
-    │   │   ├── pricing/         # PriceProvider → fonte BR / fallback USD+câmbio
+    │   │   ├── catalog/         # CatalogProvider → pokemontcg.io (EN, canônico) +
+    │   │   │                    # TCGdex (PT) — catálogo multilíngue sincronizado
+    │   │   ├── pricing/         # PriceProvider → Liga Pokémon (coletor isolado, gated
+    │   │   │                    # por parecer legal) / fallback USD+PTAX por carta
     │   │   ├── payments/        # PaymentProvider → Pagar.me (split, Pix, cartão, KYC)
     │   │   └── push/            # Expo Notifications
-    │   ├── jobs/                # pg_boss: sync catálogo, cotações diárias, snapshots,
+    │   ├── jobs/                # pg_boss: sync catálogo, backfill de imagens (priorizado:
+    │   │                        # edições recentes/populares → coleções/wishlists/anúncios
+    │   │                        # → restante; thumbnails antes de imagens grandes),
+    │   │                        # cotações em dois níveis (diário prioritário + semanal
+    │   │                        # rotativo p/ a cauda), snapshots,
     │   │                        # avaliação de wishlist, liberação automática, prazos
     │   ├── db/                  # Prisma schema + migrations
     │   └── lib/                 # money (centavos), idempotency, audit writer
@@ -111,3 +120,16 @@ do contrato da API; jobs rodam no mesmo processo/deploy da API (sem microserviç
 > **Fill ONLY if Constitution Check has violations that must be justified**
 
 Nenhuma violação — tabela vazia.
+
+## Notas e lacunas apontadas à spec
+
+- **Ator administrador (disputas)**: a spec assume resolução humana de disputas (FR-032 +
+  assumption), mas não especifica o ator administrador — permissões, fluxo de decisão e prazos
+  de resposta da operação. Recomenda-se addendum de spec (user story administrativa) antes de
+  implementar a US6. Decisão de design provisória em research §4 (back-office mínimo em
+  `modules/admin/`, papel `admin` no Supabase).
+- **Spikes bloqueantes registrados no research**: parecer legal único (coleta Liga Pokémon +
+  redistribuição de imagens pokemontcg.io/TCGdex — §2/§8); custódia com retenção e liberação
+  controlada no Pagar.me em sandbox **antes da US6** (§4); comparativo do pipeline de
+  identificação incl. índice on-device distribuído, promos fora do padrão, layouts antigos e
+  variantes reverse foil **no início da US5** (§3).

@@ -5,66 +5,150 @@
 Cada item segue: Decisão → Rationale → Alternativas consideradas. Itens marcados **[SPIKE]**
 têm decisão condicionada a validação prática no início da implementação da story correspondente.
 
-## 1. Catálogo de cartas — pokemontcg.io com sync local
+## 1. Catálogo de cartas — multilíngue desde o início (pokemontcg.io EN + TCGdex PT)
 
-**Decisão**: usar a Pokémon TCG API (pokemontcg.io) como fonte do catálogo (mandato do usuário),
-com **sincronização completa para o nosso PostgreSQL** via job agendado — o app nunca consulta
-a API externa em tempo de requisição. Imagens servidas pelas URLs da fonte (sem re-hospedagem).
-Cartas em português: o catálogo da pokemontcg.io é em inglês; o idioma PT/EN é um **atributo do
-item da coleção** (como já especificado, FR-007/FR-009), não uma entrada separada de catálogo.
+**Decisão**: o modelo de dados do catálogo é **multilíngue por construção**: a carta canônica
+(edição, número, raridade, tipos) tem **traduções por idioma** (nome e imagens localizados),
+populadas em **inglês e português** no MVP. Fontes compostas atrás do `CatalogProvider`:
 
-**Rationale**: sync local dá autocomplete < 1 s (SC-003) sem depender da latência/disponibilidade
-da fonte, e cumpre o princípio V da constituição (cache + fallback). A pesquisa indica que a
-equipe do pokemontcg.io migrou o foco para o produto comercial Scrydex — a API segue gratuita e
-funcional, mas o risco de descontinuação existe e fica mitigado pelo sync local + interface
-`CatalogProvider` trocável.
+- **pokemontcg.io** (mandato original): base canônica + dados/imagens em inglês;
+- **TCGdex** (open source, multilíngue): nomes e imagens em **português**, casados à carta
+  canônica por set/número — a pesquisa confirma que o TCGdex mantém dados localizados PT com os
+  mesmos IDs de carta entre idiomas, com completude variável conforme o que foi lançado
+  oficialmente em cada idioma.
 
-**Alternativas consideradas**: **Scrydex** (sucessor comercial, inclui preços — candidato natural
-se pokemontcg.io degradar); **TCGdex** (open source, multilíngue com português — melhor opção
-futura para nomes/imagens localizados em PT; anotado como evolução do `CatalogProvider`, fora do
-MVP); PokéWallet (menos estabelecido).
+Sync completo para o PostgreSQL via job agendado (o app nunca consulta as fontes em tempo de
+requisição). **Imagens**: com o Explorador de Catálogo (US10), a navegação pública expõe imagens
+de cartas que nenhum usuário possui — hotlink direto das fontes não escala nem é cortês com APIs
+gratuitas. Decisão: **proxy de imagens com cache próprio** (object storage + cache HTTP longo),
+populado por job de **backfill priorizado**: 1º thumbnails das edições mais recentes/populares
+(a grade da edição é o caso mais sensível de volume), 2º cartas em coleções/wishlists/anúncios,
+3º restante; imagem fria é buscada on-demand na fonte e persistida. Tradução PT ausente →
+exibição cai no fallback universal EN (FR-011); autocomplete e busca do explorador consultam os
+nomes de **todos os idiomas** (usuário digita "Pikachu" ou o nome PT).
 
-## 2. Preços em BRL — camada isolada com fonte primária a validar
+**Rationale**: suportar PT/EN por carta desde o início evita migração dolorosa depois (o idioma
+já é atributo do item da coleção e o scanner identifica idioma — FR-067); compor duas fontes
+gratuitas/estabelecidas atrás de uma interface única cumpre a constituição V. Risco do
+pokemontcg.io (equipe migrou o foco para o Scrydex) mitigado pelo sync local + fonte trocável.
 
-**Decisão**: camada `PriceProvider` isolada (constituição V) com cotações cacheadas em Postgres,
-job diário de atualização e snapshots por carta (FR-037).
+**Alternativas consideradas**: **Scrydex** (sucessor comercial, inclui preços — candidato se
+pokemontcg.io degradar); **TCGdex como fonte única** (cobre PT nativamente, mas menos
+estabelecida como base canônica e sem preços — adotada como fonte complementar de localização);
+PokéWallet (menos estabelecido); traduzir nomes por conta própria (vetado — dado oficial existe).
 
-- **Fonte primária pretendida (mercado BR)**: Liga Pokémon. **Não há API pública** e os termos de
-  uso não autorizam expressamente scraping. **[SPIKE — viabilidade legal]**: contatar a Liga
-  (LigaMagic) para acesso autorizado/parceria antes de qualquer coleta automatizada; scraping sem
-  autorização fica **vetado** enquanto não houver parecer (risco contratual/concorrencial — a Liga
-  é também concorrente indireta do nosso marketplace).
-- **Fallback funcional desde o dia 1**: preços em USD (TCGplayer via Scrydex/agregadores — o
-  acesso direto à API TCGplayer é restrito a parceiros aprovados) **convertidos a BRL pela PTAX**
-  (API pública do Banco Central), com marcação visível de que o preço é referência internacional
-  convertida.
-- O marketplace próprio, quando ativo, gera um terceiro sinal de preço (vendas concluídas) para
-  fases futuras — fora do MVP.
+## 2. Preços em BRL — Liga Pokémon primária + fallback internacional por carta
 
-**Rationale**: destrava US3/US8 sem bloquear no risco jurídico; a interface única permite trocar
-ou compor fontes sem tocar o resto do app. A conversão PTAX é oficial, gratuita e auditável.
+**Decisão**: camada `PriceProvider` isolada (constituição V) com cotações cacheadas em Postgres
+e snapshots por carta (FR-037), atualizadas em **dois níveis**:
 
-**Alternativas consideradas**: scraping direto da Liga (vetado sem autorização); TCGplayer API
-direta (acesso fechado para novos desenvolvedores); Cardmarket (mercado europeu, EUR, menos
-representativo para o Brasil).
+- **Ciclo diário (conjunto prioritário)**: cartas presentes em coleções, wishlists e anúncios
+  ativos + edições recentes/populares — mesma priorização do backfill de imagens (um único
+  critério de "quente" para imagens e preços).
+- **Ciclo semanal rotativo (cauda)**: o restante do catálogo, fatiado ao longo da semana de modo
+  que toda carta tenha cotação com no máximo 7 dias.
 
-## 3. Detecção de cartas por câmera — híbrido: detecção on-device + identificação no backend
+**Fonte primária: Liga Pokémon** (reais, mercado brasileiro); **fallback por carta**: fonte
+internacional em USD com conversão cambial diária, usado quando a carta não tem preço na
+primária **ou** quando a coleta falha. Toda cotação carrega **fonte e data**, exibidas ao
+usuário (FR-012/FR-013).
 
-**Decisão**: pipeline em duas etapas, priorizando a solução mais simples que atende o caso de uso:
+**Fonte primária — Liga Pokémon (sem API pública). [SPIKE — viabilidade em duas frentes]:**
 
-1. **On-device (tempo real)**: `react-native-vision-camera` com frame processor para detectar o
-   *retângulo* da carta no enquadramento (detecção de contorno/quadrilátero — leve, roda a 30 fps)
-   → desenha as molduras (FR-021) e dispara a captura de um still recortado quando o retângulo
-   está estável.
-2. **Backend (identificação)**: o crop é enviado à API, que identifica a carta por **embedding de
-   imagem + busca de vizinho mais próximo (pgvector)** sobre as imagens do catálogo; retorna o
-   match com confiança + top-N alternativas (alimenta "capturada" vs. "a revisar", FR-022/FR-023).
+- **Legal**: revisar os termos de uso da LigaPokemon/LigaMagic (a pesquisa não localizou
+  autorização expressa nem proibição pública de coleta) e **contatar a Liga para acesso
+  autorizado/parceria** como caminho preferencial. Coleta sem esse parecer não entra em produção
+  — risco contratual e concorrencial (a Liga é concorrente indireta do nosso marketplace).
+- **Técnica** (condicionada à legal): coleta **estruturada e isolada** no adapter
+  `LigaPriceCollector` — o modelo em dois níveis reduz drasticamente o volume diário: só o
+  conjunto prioritário (ordem de poucos milhares de cartas em vez de ~20k) é coletado por dia,
+  fora de pico, com rate-limit próprio e headers identificáveis; a cauda entra na rotação
+  semanal diluída. Parsing resiliente a mudanças de HTML (seletores centralizados, testes de
+  contrato com fixtures das páginas, validação de sanidade dos valores extraídos — variação
+  brusca > X% marca a cotação como suspeita em vez de publicar) e **alerta + fallback automático**
+  quando a estrutura mudar: o ciclo continua com a fonte internacional sem intervenção.
 
-**Rationale**: identificar ~20k cartas com modelo totalmente on-device exigiria treinar/embarcar
-um modelo específico (complexo, contra a constituição II); enviar *stream* de frames ao backend é
-caro e frágil em rede móvel. O híbrido manda apenas 1 imagem pequena por captura, mantém o
-tempo-real (molduras) 100% local e coexiste com gravação e feedbacks. Foil/reflexo cai
-naturalmente em "a revisar" quando a confiança do match é baixa (FR-060).
+**Fallback internacional (funcional desde o dia 1)**: preços USD — avaliar na implementação:
+TCGplayer API direta (acesso restrito a parceiros aprovados; solicitar), agregadores com preços
+TCGplayer (Scrydex; a própria pokemontcg.io expõe blocos de preço TCGplayer nas cartas) —
+convertidos a BRL pela **PTAX** (API pública do Banco Central), atualizada diariamente. O rótulo
+de fonte deixa claro que é referência internacional convertida.
+
+O marketplace próprio, quando ativo, gera um terceiro sinal de preço (vendas concluídas) para
+fases futuras — fora do MVP.
+
+**Rationale**: prioriza o preço que o colecionador brasileiro reconhece, sem bloquear US3/US8 no
+risco jurídico (fallback operante primeiro); resolução por carta maximiza cobertura; a interface
+única + coletor isolado permitem trocar/compor fontes sem tocar o resto do app.
+
+**Alternativas consideradas**: coleta da Liga sem parecer legal (vetada); TCGplayer API direta
+como primária (fechada a novos devs e em USD); Cardmarket (EUR, mercado europeu, pouco
+representativo do Brasil); depender só do marketplace próprio (sem liquidez no início).
+
+## 3. Detecção de cartas por câmera — OCR-first com fallback visual, atrás de interface trocável
+
+**Decisão**: molduras em tempo real ficam **on-device** (`react-native-vision-camera` + frame
+processor detectando o retângulo/quadrilátero da carta a ~30 fps — FR-021); quando o retângulo
+está estável, um still recortado alimenta o pipeline de **identificação em duas etapas**:
+
+1. **OCR-first**: extrair do crop o **nome** e o **número da carta** (ex.: "025/165") — juntos
+   identificam a carta **unicamente** no catálogo e o texto revela o **idioma** (PT/EN, FR-067).
+   OCR on-device é viável e barato (ML Kit reconhece texto offline em fração de segundo).
+2. **Fallback visual**: se o OCR não resolver com confiança (texto ilegível, foil, reflexo),
+   **matching da imagem** contra as artes do catálogo — começar por **perceptual hashing**
+   (phash/dhash, barato e sem GPU) e evoluir para **embeddings + pgvector** só se a precisão do
+   hashing for insuficiente. Match abaixo do limiar → "a revisar" com top-N (FR-023/FR-060).
+
+**Arquitetura**: a identificação fica atrás da interface **`CardIdentifier`**
+(`identify(crop) → {card, language, confidence, candidates[], method}`), consumida pelo fluxo de
+sessões — trocar OCR↔matching, on-device↔backend ou fornecedor **não toca** sessões, molduras,
+feedbacks ou gravação (constituição V aplicada internamente).
+
+**[SPIKE — comparativo antes de fixar]** on-device vs. backend para cada etapa, medindo
+latência (SC-006a ≤ 2 s), custo, precisão (SC-006 ≥ 80%) e funcionamento offline:
+
+| Opção | Prós | Contras |
+|---|---|---|
+| OCR on-device (ML Kit) + lookup local | Rápido, offline, sem custo por captura | Requer o **índice de identificação distribuído** (ver abaixo) — componente novo a construir e manter |
+| OCR no backend | Um só lugar para evoluir; sem índice no app | Latência de rede em cada captura, custo |
+| phash on-device | Offline total, projetos existentes provam viabilidade | Também requer o índice distribuído (hashes); robustez a iluminação varia |
+| Embeddings no backend (pgvector) | Maior precisão em casos difíceis | Rede + infraestrutura de embedding; só se hashing falhar |
+
+**Custo estrutural da opção on-device — índice de identificação distribuído**: o sync atual é
+apenas fonte→Postgres; identificar no aparelho exige um artefato **gerado no backend a partir do
+catálogo sincronizado** — índice compacto de `nome+número+idioma` (lookup do OCR) e perceptual
+hashes por tradução/variante (fallback visual) — com **mecanismo de download e atualização
+versionado no app** (novo set publicado → índice incrementado). É um componente adicional de
+build, distribuição e compatibilidade que a opção backend não tem; entra na balança do spike
+como custo fixo da via on-device.
+
+**Casos obrigatórios na validação do spike** (além de cartas comuns PT/EN, foil e duplicatas):
+
+- **Promos com numeração fora do padrão** (ex.: "SWSH001", numeração sem "NNN/MMM") — o parse de
+  número do OCR não pode assumir o formato `NNN/MMM`;
+- **Sets antigos com layout diferente** (posição/tipografia do nome e número mudam entre eras) —
+  as regiões de OCR não podem ser fixas por template único;
+- **Variantes que compartilham número** (reverse foil vs. normal): mesma carta canônica e mesmo
+  `(set, number)`, preços distintos — o OCR sozinho **não distingue** variantes; a distinção é
+  visual (brilho/padrão) ou manual na revisão.
+
+**Representação de variantes (modelo de dados + CardIdentifier)**: a carta canônica permanece
+única por `(set, number)`; a **variante** (normal, reverse foil, holo…) é uma dimensão dos
+registros que dependem dela — item da coleção, cotação/snapshot de preço e anúncio. O
+`CardIdentifier` retorna `variant` com default `normal` e confiança própria: quando não
+determinável automaticamente, a captura entra com `normal` e a variante é ajustável na tela de
+revisão (mesmo padrão do idioma indeterminado, FR-067).
+
+**Projetos existentes a estudar antes de construir do zero** (aprendizado/reuso de técnica):
+pokemon-card-recognizer (reconhecimento em imagem/vídeo), Pokemon-Card-Scanner e
+PokeCard-TCG-detector (OpenCV + ImageHash: phash/dhash/whash contra imagens do catálogo),
+pokemon-scanner (OpenCV + Tesseract OCR + Pokémon TCG API). Nenhum é produto pronto para RN,
+mas validam o pipeline OCR+hash e fornecem referência de parâmetros.
+
+**Rationale**: OCR de nome+número é a rota mais simples e certeira (identificador único + idioma
+de graça, sem treinar modelo); o fallback visual cobre o que o OCR não lê; tudo o que roda por
+captura é 1 imagem pequena — compatível com scanner contínuo, molduras, feedbacks e gravação
+simultâneos. Foil/reflexo cai naturalmente em "a revisar" (FR-060).
 
 **[SPIKE — gravação da sessão]**: a gravação precisa capturar câmera + overlays (FR-062). Opções,
 da mais simples à mais complexa: (a) gravação de tela nativa do SO limitada à view da sessão
@@ -90,10 +174,33 @@ auditoria própria (constituição IV). Nunca processamos pagamento diretamente.
 para split, com regras customizáveis, API de recipients (onboarding/KYC de vendedores) e suporte
 pleno a Pix; o modelo split é inclusive a prática regulatória esperada para marketplaces no Brasil.
 
+**[SPIKE — custódia, obrigatório antes de iniciar a US6]**: validar em sandbox que o fluxo
+`pago → enviado → recebido → liberado` é implementável com recipients do Pagar.me — em
+particular: (a) reter o valor na plataforma após a captura **sem** repasse automático imediato ao
+recebedor; (b) liberar ao vendedor (menos comissão) apenas por comando nosso na confirmação de
+recebimento/prazo; (c) reembolsar integralmente durante disputa após a retenção; (d) prazos
+máximos de retenção permitidos pelo provedor compatíveis com nossos prazos (5 dias úteis de envio
++ trânsito + 7 dias de confirmação). Se o split nativo não suportar liberação controlada, avaliar
+o modo alternativo do próprio provedor (recebimento na conta da plataforma + transferência via
+API) ou o Mercado Pago — a decisão do provedor só é definitiva após este spike.
+
+**Administração de disputas no MVP**: quem opera é a **equipe da plataforma** (operação humana,
+como assumido na spec), através de um **back-office mínimo**: endpoints `/admin/*` na própria API
+(módulo `modules/admin/`), protegidos por papel `admin` (claim no Supabase Auth), com uma tela
+web interna simples servida pela API — fila de disputas abertas, evidências das partes, decisão
+(reembolsar comprador | liberar vendedor) que executa a ação financeira via `PaymentProvider` e
+grava auditoria. Sem ferramenta externa nem app mobile para admin no MVP. **Lacuna apontada na
+spec**: a spec descreve o mecanismo de disputa (FR-032) e assume resolução humana, mas **não
+especifica o ator administrador** (permissões, fluxo de decisão, prazos de resposta da operação)
+— recomenda-se um addendum de spec (user story administrativa) antes de implementar a US6;
+registrado também no plan.md.
+
 **Alternativas consideradas**: **Mercado Pago Split** (forte em Pix e marca conhecida; segunda
 opção — a abstração `PaymentProvider` mantém a troca barata); **Stripe Connect** (excelente API,
 mas cobertura de Pix/split e onboarding de vendedores PF no Brasil menos madura que os locais);
-Asaas/PagBrasil (menos tração no perfil marketplace C2C).
+Asaas/PagBrasil (menos tração no perfil marketplace C2C); para o admin: ferramenta low-code
+externa (Retool e similares — dependência e custo extra para uma fila simples) e decisão direto
+no banco (vetada — sem trilha de auditoria nem controle de acesso).
 
 ## 5. Autenticação — Supabase Auth
 
@@ -123,9 +230,12 @@ para o volume (~10k usuários). A lógica anti-spam é nossa (dados no Postgres)
 ## 7. Backend, jobs e infraestrutura
 
 **Decisão**: Fastify + Prisma + Zod em Node 22/TypeScript; **pg_boss** para jobs agendados (sync
-de catálogo, cotações diárias, snapshots, avaliação de wishlists, liberação automática/prazos do
-marketplace) rodando no mesmo deploy da API; **um ambiente de produção** em PaaS (Railway ou
-Render) com PostgreSQL gerenciado; deploy por push. Dinheiro sempre em **centavos inteiros**;
+de catálogo, backfill de imagens, cotações em dois níveis, snapshots, avaliação de wishlists,
+liberação automática/prazos do marketplace) rodando no mesmo deploy da API; **um ambiente de
+produção** em PaaS (Railway ou Render) com PostgreSQL gerenciado; deploy por push. **Object
+storage para o cache de imagens: Cloudflare R2** — Railway/Render não têm object storage nativo,
+e o R2 tem egress gratuito (imagens de catálogo são exatamente o perfil de tráfego de saída
+alto); alternativa: AWS S3 + CloudFront (mais peças e custo de egress). Dinheiro sempre em **centavos inteiros**;
 rotas financeiras exigem **chave de idempotência**; auditoria em tabela **append-only**.
 
 **Rationale**: pilha estabelecida e enxuta (constituição II); pg_boss usa o próprio Postgres
@@ -140,13 +250,23 @@ mais); cron do PaaS (menos observável que pg_boss); AWS direto (complexidade pr
 | Risco | Mitigação |
 |-------|-----------|
 | pokemontcg.io descontinuar/degradar (foco da equipe migrou p/ Scrydex) | Sync local completo + `CatalogProvider` trocável (Scrydex/TCGdex) |
-| Sem acordo com a Liga Pokémon para preços BR | Fallback USD+PTAX operante desde o dia 1, com rótulo de origem do preço |
-| Identificação por embedding insuficiente p/ SC-006 (80%) | Spike no início da US5; alternativa: serviço pronto de identificação; scanner não bloqueia o resto (constituição III) |
+| Cobertura parcial de PT no TCGdex (edições sem lançamento oficial em português) | Fallback universal EN por carta (FR-011); medir cobertura real no job de sync |
+| Sem acordo com a Liga Pokémon para preços BR | Fallback USD+PTAX operante desde o dia 1, com rótulo de fonte/data no preço |
+| Coleta da Liga quebrar por mudança de HTML | Parser isolado com testes de contrato/fixtures, validação de sanidade, alerta + fallback automático para a fonte internacional |
+| **Propriedade intelectual das imagens re-hospedadas** — as artes das cartas são IP da The Pokémon Company e o app é comercial | Incluir no **mesmo parecer legal** previsto para a coleta da Liga: verificar os termos do pokemontcg.io e do TCGdex sobre redistribuição/cache de imagens; enquanto pendente, o proxy opera como cache técnico com atribuição de origem, e o plano B é servir hotlink das fontes com cache HTTP curto (degrada custo/latência, não funcionalidade) |
+| Custódia (retenção + liberação controlada) não suportada como assumido pelo split do Pagar.me | Spike obrigatório em sandbox antes da US6 (research §4); alternativas: modo conta-da-plataforma + transferência via API, ou Mercado Pago — troca barata via `PaymentProvider` |
+| Pipeline OCR+hash insuficiente p/ SC-006 (80%) ou SC-006a (2 s) | Spike comparativo no início da US5; `CardIdentifier` trocável permite escalar para embeddings/serviço pronto sem tocar o fluxo de sessões; scanner não bloqueia o resto (constituição III) |
 | Gravação degradar detecção (FR-063) | Comportamento já especificado: desativar gravação com aviso; spike valida cedo |
 | Latência de webhook do provedor de pagamento | Estados de pedido tolerantes a atraso + reconciliação periódica via job |
 
 **Sources**: [pokemontcg.io](https://pokemontcg.io/) (aviso "Now part of Scrydex"),
-[TCGdex — The Multilingual Pokemon TCG API](https://tcgdex.dev/),
+[TCGdex — The Multilingual Pokemon TCG API](https://tcgdex.dev/) e
+[TCGdex — Searching for cards](https://tcgdex.dev/rest/cards) (dados/imagens localizados, PT
+entre os idiomas suportados),
+[pokemon-card-recognizer](https://github.com/prateekt/pokemon-card-recognizer),
+[Pokemon-Card-Scanner (ImageHash)](https://github.com/NolanAmblard/Pokemon-Card-Scanner),
+[PokeCard-TCG-detector (OpenCV + imagehash)](https://github.com/em4go/PokeCard-TCG-detector),
+[pokemon-scanner (OpenCV + Tesseract + TCG API)](https://github.com/t-sinclair2500/pokemon-scanner),
 [CardGrader — TCGplayer API Alternatives (2026)](https://cardgrader.ai/blog/tcgplayer-api-alternatives),
 [LigaPokemon](https://www.ligapokemon.com.br/?view=newuser),
 [Mercado Pago Developers — Split Payments](https://www.mercadopago.com.br/developers/pt/docs/split-payments/split-1-1/overview),

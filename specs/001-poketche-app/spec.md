@@ -120,7 +120,7 @@ O colecionador acessa um dashboard com: valor total estimado da coleção, evolu
 
 ### User Story 5 - Adição por câmera com sessões de escaneamento (Priority: P4)
 
-O usuário inicia uma **sessão de escaneamento** que abre a câmera em modo contínuo. Ao detectar cartas no enquadramento, o app desenha molduras em tempo real ao redor de cada carta, acompanhando sua posição na tela — múltiplas cartas visíveis recebem molduras individuais. Quando uma carta é identificada com confiança suficiente, ela é adicionada automaticamente à **sessão** (ainda não à coleção), com a moldura mudando de estado para "capturada" e um contador visível de cartas da sessão. Cartas já capturadas e reapresentadas são tratadas como duplicatas (incremento de quantidade, sem registro repetido). Identificações ambíguas entram na sessão como "a revisar", sem interromper o escaneamento. Cada captura dispara feedback visual e sonoro — padrão para cartas comuns e especial (celebratório) para cartas de raridade alta, acima de um valor configurável ou presentes em wishlists do usuário. Ao encerrar, uma tela de revisão permite corrigir, resolver pendências, ajustar atributos, excluir e complementar manualmente, com resumo estatístico da sessão; só após a confirmação as cartas entram na coleção. Sessões interrompidas são recuperáveis. Durante a sessão, o usuário pode alternar entre a câmera traseira (padrão) e a frontal por um botão visível, com a preferência lembrada. Opcionalmente, pode gravar a sessão (toggle desligado por padrão): o vídeo captura o que ele vê na tela — câmera com molduras, animações e contadores sobrepostos, incluindo o áudio dos feedbacks — e, na revisão, pode ser assistido, salvo na galeria, compartilhado via compartilhamento nativo do sistema ou descartado; os vídeos ficam apenas no dispositivo.
+O usuário inicia uma **sessão de escaneamento** que abre a câmera em modo contínuo. Ao detectar cartas no enquadramento, o app desenha molduras em tempo real ao redor de cada carta, acompanhando sua posição na tela — múltiplas cartas visíveis recebem molduras individuais. Quando uma carta é identificada com confiança suficiente, ela é adicionada automaticamente à **sessão** (ainda não à coleção), com a moldura mudando de estado para "capturada" e um contador visível de cartas da sessão. Cartas já capturadas e reapresentadas são tratadas como duplicatas (incremento de quantidade, sem registro repetido). O app também identifica automaticamente o idioma da carta (português ou inglês nesta fase), registrando-o na captura sem o usuário precisar informar; quando o idioma não é determinável com confiança, inglês é assumido como padrão, ajustável na revisão. Identificações ambíguas entram na sessão como "a revisar", sem interromper o escaneamento. Cada captura dispara feedback visual e sonoro — padrão para cartas comuns e especial (celebratório) para cartas de raridade alta, acima de um valor configurável ou presentes em wishlists do usuário. Ao encerrar, uma tela de revisão permite corrigir, resolver pendências, ajustar atributos, excluir e complementar manualmente, com resumo estatístico da sessão; só após a confirmação as cartas entram na coleção. Sessões interrompidas são recuperáveis. Durante a sessão, o usuário pode alternar entre a câmera traseira (padrão) e a frontal por um botão visível, com a preferência lembrada. Opcionalmente, pode gravar a sessão (toggle desligado por padrão): o vídeo captura o que ele vê na tela — câmera com molduras, animações e contadores sobrepostos, incluindo o áudio dos feedbacks — e, na revisão, pode ser assistido, salvo na galeria, compartilhado via compartilhamento nativo do sistema ou descartado; os vídeos ficam apenas no dispositivo.
 
 **Why this priority**: é o diferencial competitivo (elimina o registro um a um), mas por decisão explícita o app deve ser plenamente utilizável sem ele — o registro manual (US2) é o caminho alternativo garantido. Integra-se às wishlists (US9) para o feedback especial e à coleção (US2) como destino final.
 
@@ -136,37 +136,42 @@ O usuário inicia uma **sessão de escaneamento** que abre a câmera em modo con
 4. **Given** uma carta já capturada na sessão, **When** ela é reapresentada à câmera, **Then** o app a reconhece como duplicata e incrementa a quantidade daquela captura, com indicação visual, sem criar registro repetido.
 5. **Given** uma identificação ambígua, **When** o app não tem confiança suficiente, **Then** a carta entra na sessão marcada como "a revisar" com as opções mais prováveis salvas para escolha posterior, sem interromper o escaneamento.
 
+*Identificação automática de idioma*
+
+6. **Given** uma carta em português ou em inglês capturada, **When** o app determina o idioma com confiança, **Then** a captura entra na sessão com o idioma registrado automaticamente, sem o usuário informar, e a imagem exibida corresponde ao idioma da carta quando disponível.
+7. **Given** uma carta cujo idioma não pôde ser determinado com confiança, **When** ela é capturada, **Then** entra na sessão com inglês como idioma padrão, ajustável na tela de revisão.
+
 *Feedback por captura*
 
-6. **Given** a captura de uma carta comum, **When** ela é registrada na sessão, **Then** um feedback visual (animação na moldura) e sonoro padrão é disparado.
-7. **Given** a captura de uma carta de raridade alta ou com valor de mercado acima do limiar configurado, **When** ela é registrada, **Then** o feedback é o especial (som e animação distintos, celebratórios).
-8. **Given** a captura de uma carta presente em wishlist do usuário, **When** ela é registrada, **Then** o feedback especial é disparado e o app indica qual wishlist e se o preço atual está no alvo.
-9. **Given** sons desativados nas configurações, **When** capturas ocorrem, **Then** nenhum som é emitido, o feedback visual permanece e o ritmo de detecção contínua não é afetado.
+8. **Given** a captura de uma carta comum, **When** ela é registrada na sessão, **Then** um feedback visual (animação na moldura) e sonoro padrão é disparado.
+9. **Given** a captura de uma carta de raridade alta ou com valor de mercado acima do limiar configurado, **When** ela é registrada, **Then** o feedback é o especial (som e animação distintos, celebratórios).
+10. **Given** a captura de uma carta presente em wishlist do usuário, **When** ela é registrada, **Then** o feedback especial é disparado e o app indica qual wishlist e se o preço atual está no alvo.
+11. **Given** sons desativados nas configurações, **When** capturas ocorrem, **Then** nenhum som é emitido, o feedback visual permanece e o ritmo de detecção contínua não é afetado.
 
 *Revisão e confirmação*
 
-10. **Given** o encerramento da sessão, **When** a tela de revisão abre, **Then** o usuário pode corrigir identificações, resolver as cartas "a revisar" escolhendo entre as opções, ajustar quantidade, condição e idioma de cada captura, excluir capturas erradas e adicionar manualmente cartas que a câmera não pegou.
-11. **Given** a tela de revisão, **When** o usuário consulta o resumo da sessão, **Then** vê: total de cartas, valor de mercado total estimado, distribuição por raridade e por edição, carta mais valiosa da sessão e quantas cartas estavam em wishlists.
-12. **Given** a revisão concluída, **When** o usuário confirma, **Then** as cartas são adicionadas à coleção (disparando, quando aplicável, a pergunta de remoção de wishlist) — e nada é adicionado antes dessa confirmação.
-13. **Given** uma sessão em revisão, **When** o usuário escolhe descartá-la, **Then** a sessão inteira é descartada sem alterar a coleção, após confirmação.
-14. **Given** uma sessão interrompida (app fechado, ligação recebida), **When** o usuário reabre o app, **Then** ele pode retomar a sessão pendente do ponto em que parou ou descartá-la.
+12. **Given** o encerramento da sessão, **When** a tela de revisão abre, **Then** o usuário pode corrigir identificações, resolver as cartas "a revisar" escolhendo entre as opções, ajustar quantidade, condição e idioma de cada captura, excluir capturas erradas e adicionar manualmente cartas que a câmera não pegou.
+13. **Given** a tela de revisão, **When** o usuário consulta o resumo da sessão, **Then** vê: total de cartas, valor de mercado total estimado, distribuição por raridade e por edição, carta mais valiosa da sessão e quantas cartas estavam em wishlists.
+14. **Given** a revisão concluída, **When** o usuário confirma, **Then** as cartas são adicionadas à coleção (disparando, quando aplicável, a pergunta de remoção de wishlist) — e nada é adicionado antes dessa confirmação.
+15. **Given** uma sessão em revisão, **When** o usuário escolhe descartá-la, **Then** a sessão inteira é descartada sem alterar a coleção, após confirmação.
+16. **Given** uma sessão interrompida (app fechado, ligação recebida), **When** o usuário reabre o app, **Then** ele pode retomar a sessão pendente do ponto em que parou ou descartá-la.
 
 *Escolha de câmera*
 
-15. **Given** uma sessão de escaneamento ativa, **When** o usuário toca o botão de alternância de câmera visível na interface, **Then** a detecção passa da câmera traseira (padrão) para a frontal (ou vice-versa), com molduras, capturas e feedbacks funcionando da mesma forma em ambas.
-16. **Given** um usuário que alternou a câmera em uma sessão, **When** ele inicia a próxima sessão, **Then** a câmera escolhida anteriormente é lembrada como preferência.
+17. **Given** uma sessão de escaneamento ativa, **When** o usuário toca o botão de alternância de câmera visível na interface, **Then** a detecção passa da câmera traseira (padrão) para a frontal (ou vice-versa), com molduras, capturas e feedbacks funcionando da mesma forma em ambas.
+18. **Given** um usuário que alternou a câmera em uma sessão, **When** ele inicia a próxima sessão, **Then** a câmera escolhida anteriormente é lembrada como preferência.
 
 *Gravação e compartilhamento da sessão*
 
-17. **Given** o início de uma sessão, **When** o usuário ativa o toggle de gravação (visível e desligado por padrão), **Then** a sessão é gravada capturando o que ele vê na tela: o vídeo da câmera com as molduras de detecção, animações e contadores sobrepostos, incluindo o áudio dos feedbacks sonoros.
-18. **Given** um aparelho sem capacidade de gravar e detectar simultaneamente, **When** o usuário tenta ativar a gravação, **Then** o app informa a limitação e desativa a gravação, mantendo o escaneamento funcionando normalmente — a gravação nunca degrada perceptivelmente a detecção em tempo real.
-19. **Given** uma sessão gravada encerrada, **When** o usuário está na tela de revisão, **Then** ele pode assistir ao vídeo e escolher entre salvar na galeria do celular, compartilhar via compartilhamento nativo do sistema ou descartar o vídeo — e descartar o vídeo não descarta as cartas da sessão.
-20. **Given** uma gravação finalizada, **When** o usuário opta pelo encerramento visual, **Then** o vídeo ganha como última cena um resumo da sessão (total de cartas, valor estimado, carta mais rara/valiosa), tornando-o autocontido para compartilhamento.
-21. **Given** qualquer sessão gravada, **When** o vídeo é criado, **Then** ele permanece apenas no dispositivo do usuário — nenhum vídeo é enviado aos servidores da plataforma.
+19. **Given** o início de uma sessão, **When** o usuário ativa o toggle de gravação (visível e desligado por padrão), **Then** a sessão é gravada capturando o que ele vê na tela: o vídeo da câmera com as molduras de detecção, animações e contadores sobrepostos, incluindo o áudio dos feedbacks sonoros.
+20. **Given** um aparelho sem capacidade de gravar e detectar simultaneamente, **When** o usuário tenta ativar a gravação, **Then** o app informa a limitação e desativa a gravação, mantendo o escaneamento funcionando normalmente — a gravação nunca degrada perceptivelmente a detecção em tempo real.
+21. **Given** uma sessão gravada encerrada, **When** o usuário está na tela de revisão, **Then** ele pode assistir ao vídeo e escolher entre salvar na galeria do celular, compartilhar via compartilhamento nativo do sistema ou descartar o vídeo — e descartar o vídeo não descarta as cartas da sessão.
+22. **Given** uma gravação finalizada, **When** o usuário opta pelo encerramento visual, **Then** o vídeo ganha como última cena um resumo da sessão (total de cartas, valor estimado, carta mais rara/valiosa), tornando-o autocontido para compartilhamento.
+23. **Given** qualquer sessão gravada, **When** o vídeo é criado, **Then** ele permanece apenas no dispositivo do usuário — nenhum vídeo é enviado aos servidores da plataforma.
 
 *Caminho alternativo*
 
-22. **Given** permissão de câmera negada ou indisponível, **When** o usuário tenta abrir o scanner, **Then** o app explica a necessidade da permissão e todos os demais fluxos (incluindo registro manual completo) permanecem funcionando.
+24. **Given** permissão de câmera negada ou indisponível, **When** o usuário tenta abrir o scanner, **Then** o app explica a necessidade da permissão e todos os demais fluxos (incluindo registro manual completo) permanecem funcionando.
 
 ---
 
@@ -197,7 +202,7 @@ Um vendedor com cadastro completo anuncia cartas da sua coleção definindo pre�
 
 ### User Story 7 - Acesso de visitante não autenticado (Priority: P3)
 
-Qualquer pessoa, sem cadastro, acessa uma coleção marcada como pública através de um link compartilhável e visualiza o que o dono permitiu: cartas com imagens, estatísticas básicas da coleção e, apenas se o dono autorizar, os valores (incluindo o valor total). Visitantes também navegam e buscam anúncios do marketplace sem conta; ao tentar comprar, vender ou criar a própria coleção, o app os conduz ao cadastro.
+Qualquer pessoa, sem cadastro, acessa uma coleção marcada como pública através de um link compartilhável e visualiza o que o dono permitiu: cartas com imagens, estatísticas básicas da coleção e, apenas se o dono autorizar, os valores (incluindo o valor total). Visitantes também navegam e buscam anúncios do marketplace e exploram o catálogo completo de cartas (US10) sem conta; ao tentar comprar, vender ou criar a própria coleção, o app os conduz ao cadastro.
 
 **Why this priority**: amplia o alcance do produto (compartilhamento vira canal de aquisição de usuários) e reduz a barreira de entrada no marketplace. Depende da existência de coleções compartilháveis (US1/US2); a parte de navegação em anúncios se aplica quando o marketplace (US6) existir, mas a visão pública de coleções é testável antes disso.
 
@@ -237,6 +242,27 @@ O colecionador cria uma ou mais wishlists nomeadas (ex.: "Completar Base Set", "
 
 ---
 
+### User Story 10 - Explorador de Catálogo (Priority: P3)
+
+Qualquer pessoa — incluindo visitantes não autenticados — navega pelo catálogo completo de cartas Pokémon TCG do sistema: a lista de todas as edições/coleções (com logo, data de lançamento e total de cartas) e, ao abrir uma edição, a grade de todas as suas cartas com imagens. Uma busca global encontra cartas por nome em qualquer idioma suportado, com filtros por edição, raridade, tipo e faixa de preço. A tela de detalhe da carta é acessível a partir do catálogo mesmo sem possuí-la: imagem em alta resolução, dados da carta, preço de mercado atual com fonte e data, e histórico de preço. Para usuários autenticados, o detalhe indica se/quantas ele possui e oferece ações rápidas (adicionar à coleção, adicionar a uma wishlist, ver anúncios ativos no marketplace), e o progresso de completude por edição se torna navegável: dentro da edição, o usuário vê quais cartas possui e quais faltam, com atalho para adicionar as faltantes a uma wishlist.
+
+**Why this priority**: é leitura sobre dados que o sistema já mantém (catálogo sincronizado + cotações) e transforma o app em ferramenta de descoberta — porta de entrada para visitantes (aquisição) e gerador de demanda para wishlists (US9) e marketplace (US6). Depende do catálogo (base da US2) e da precificação (US3); não bloqueia nenhuma outra story.
+
+**Independent Test**: pode ser testada sem conta, navegando da lista de edições à grade de cartas e ao detalhe com preço e histórico; e com conta, verificando indicadores de posse, ações rápidas e a visão de completude da edição com atalho para wishlist.
+
+**Acceptance Scenarios**:
+
+1. **Given** qualquer pessoa (autenticada ou não), **When** ela abre o explorador de catálogo, **Then** vê a lista de todas as edições com logo, data de lançamento e total de cartas.
+2. **Given** uma edição aberta, **When** a grade carrega, **Then** todas as cartas da edição aparecem com imagens (no idioma do usuário quando disponível, fallback em inglês).
+3. **Given** a busca global do catálogo, **When** o usuário busca por nome em português ou inglês e aplica filtros (edição, raridade, tipo, faixa de preço), **Then** vê apenas cartas compatíveis; com filtro de preço ativo, cartas sem cotação ficam de fora com indicação clara.
+4. **Given** uma carta aberta a partir do catálogo, **When** a tela de detalhe carrega, **Then** exibe imagem em alta resolução, dados da carta, preço de mercado atual com fonte e data, e histórico de preço — mesmo que o usuário não a possua.
+5. **Given** um usuário autenticado no detalhe de uma carta, **When** ele a visualiza, **Then** vê se e quantas cópias possui na coleção e as ações rápidas: adicionar à coleção, adicionar a uma wishlist e ver anúncios ativos dela no marketplace.
+6. **Given** um usuário autenticado dentro de uma edição, **When** ele abre a visão de completude, **Then** vê quais cartas daquela edição possui e quais faltam, com atalho para adicionar as faltantes a uma wishlist.
+7. **Given** um visitante não autenticado no catálogo, **When** ele tenta uma ação que exige conta (adicionar à coleção, adicionar a wishlist, comprar), **Then** é conduzido ao cadastro/login e retorna ao ponto de origem após autenticar.
+8. **Given** um visitante não autenticado numa edição, **When** ele visualiza a grade, **Then** nenhum indicador de posse ou completude é exibido (dados de coleção exigem conta).
+
+---
+
 ### Edge Cases
 
 - Fonte externa de preços fora do ar ou com formato alterado: últimas cotações conhecidas permanecem exibidas com data original; nenhum fluxo é bloqueado.
@@ -248,6 +274,11 @@ O colecionador cria uma ou mais wishlists nomeadas (ex.: "Completar Base Set", "
 - Scanner em ambiente escuro, carta em sleeve reflexivo, carta foil com brilho intenso ou carta falsificada: identificação ambígua entra na sessão como "a revisar" para resolução na tela de revisão, sem interromper o escaneamento.
 - Permissão de câmera negada: scanner indisponível com explicação; registro manual permanece completo.
 - Cartas parcialmente sobrepostas em pilha: apenas cartas suficientemente visíveis são detectadas; as demais podem ser adicionadas manualmente na revisão.
+- Carta em idioma não suportado (ex.: japonês) capturada pelo scanner: identificação segue em melhor esforço e o idioma registrado é inglês (padrão), ajustável na revisão apenas entre os idiomas suportados (PT/EN).
+- Carta em português sem imagem PT disponível na fonte: a imagem em inglês é exibida como fallback, sem indicação de erro.
+- Edição sem logo ou sem data de lançamento na fonte de catálogo: a lista exibe a edição com placeholder/sem o dado ausente, sem quebrar a navegação.
+- Edição muito grande (200+ cartas) no explorador: a grade carrega progressivamente com estados de loading, sem travar a navegação.
+- Busca global com filtro de faixa de preço e todas as cartas sem cotação: resultado vazio com explicação (cartas sem cotação não entram no filtro de preço), não uma tela vazia genérica.
 - Sessão pendente encontrada ao abrir o app: usuário escolhe retomar ou descartar antes de iniciar nova sessão; nenhuma carta da sessão pendente consta na coleção.
 - Cotações indisponíveis durante a sessão: capturas e revisão funcionam normalmente; o resumo estatístico usa as últimas cotações conhecidas e indica itens sem preço.
 - Mesma carta capturada em duplicidade por erro de identificação (registros distintos): o usuário exclui ou mescla ajustando quantidades na tela de revisão.
@@ -294,12 +325,12 @@ O colecionador cria uma ou mais wishlists nomeadas (ex.: "Completar Base Set", "
 - **FR-008**: Users MUST be able to adicionar itens à coleção informando carta do catálogo, condição (escala: Mint, Near Mint, Excellent, Good, Played, Damaged), quantidade, idioma e, opcionalmente, o preço de aquisição em BRL (maior que zero quando informado).
 - **FR-009**: System MUST tratar cada combinação de carta + condição + idioma como item distinto da coleção, com quantidade própria.
 - **FR-010**: Users MUST be able to visualizar, editar (condição, quantidade, idioma, preço de aquisição) e remover itens da coleção.
-- **FR-011**: System MUST exibir a imagem oficial da carta em todos os contextos de exibição do item.
+- **FR-011**: System MUST exibir a imagem oficial da carta em todos os contextos de exibição do item, correspondente ao idioma do item quando disponível (carta em português exibe a arte em português), com fallback para a imagem em inglês.
 
 **Precificação**
 
-- **FR-012**: System MUST exibir o preço de mercado atual de cada carta da coleção em reais (BRL), com referência ao mercado brasileiro.
-- **FR-013**: System MUST atualizar as cotações periodicamente (pelo menos uma vez ao dia) e exibir a data/hora da última atualização de cada cotação.
+- **FR-012**: System MUST exibir o preço de mercado atual de cada carta da coleção em reais (BRL), com referência ao mercado brasileiro, indicando a fonte da cotação (mercado brasileiro ou referência internacional convertida) junto à data (FR-013).
+- **FR-013**: System MUST atualizar as cotações periodicamente — pelo menos uma vez ao dia para cartas presentes em coleções, wishlists e anúncios ativos (e de edições recentes/populares), e pelo menos uma vez por semana para o restante do catálogo — e exibir a data/hora da última atualização de cada cotação.
 - **FR-014**: System MUST continuar exibindo a última cotação conhecida, com sua data, quando a fonte de preços estiver indisponível, sem bloquear nenhuma funcionalidade.
 - **FR-015**: System MUST indicar claramente quando uma carta não possui cotação disponível e excluí-la do cálculo de valor total, com indicação ao usuário.
 
@@ -354,12 +385,21 @@ O colecionador cria uma ou mais wishlists nomeadas (ex.: "Completar Base Set", "
 - **FR-064**: System MUST permitir, na tela de revisão da sessão, assistir ao vídeo gravado e escolher entre: salvar na galeria do celular, compartilhar via compartilhamento nativo do sistema ou descartar o vídeo; descartar o vídeo MUST NOT descartar as cartas da sessão.
 - **FR-065**: System MUST oferecer, opcionalmente, um encerramento visual ao final da gravação com o resumo da sessão (total de cartas, valor estimado, carta mais rara/valiosa) como última cena do vídeo, tornando-o autocontido para compartilhamento.
 - **FR-066**: Os vídeos gravados MUST permanecer exclusivamente no dispositivo do usuário; System MUST NOT enviar vídeos de sessão aos servidores da plataforma.
+- **FR-067**: System MUST identificar automaticamente o idioma da carta capturada (português ou inglês nesta fase), registrando-o na captura sem intervenção do usuário; quando o idioma não for determinável com confiança, MUST assumir inglês como padrão, ajustável na tela de revisão (FR-056).
+
+**Explorador de catálogo**
+
+- **FR-068**: System MUST oferecer navegação pública pelo catálogo completo — lista de todas as edições (logo, data de lançamento, total de cartas) e grade de cartas de cada edição com imagens (idioma do usuário quando disponível, fallback inglês) — acessível também a visitantes não autenticados.
+- **FR-069**: System MUST oferecer busca global de cartas por nome em qualquer idioma suportado, com filtros combináveis por edição, raridade, tipo e faixa de preço; com filtro de preço ativo, cartas sem cotação MUST ficar de fora dos resultados com indicação clara.
+- **FR-070**: System MUST oferecer tela de detalhe de qualquer carta a partir do catálogo, sem exigir posse ou conta: imagem em alta resolução, dados da carta, preço de mercado atual com fonte e data (FR-012/FR-013) e histórico de preço (FR-038/FR-043).
+- **FR-071**: Para usuários autenticados, a tela de detalhe MUST indicar se e quantas cópias o usuário possui na coleção e oferecer ações rápidas: adicionar à coleção, adicionar a uma wishlist e ver anúncios ativos da carta no marketplace.
+- **FR-072**: System MUST tornar a completude por edição (FR-020) navegável a partir do catálogo para usuários autenticados: dentro da edição, exibir quais cartas o usuário possui e quais faltam, com atalho para adicionar as faltantes a uma wishlist; indicadores de posse/completude MUST NOT aparecer para visitantes.
 
 **Marketplace e pagamentos**
 
 - **FR-025**: Users MUST be able to anunciar itens da própria coleção definindo preço e condição; a quantidade anunciada MUST NOT exceder a quantidade possuída.
 - **FR-026**: Users MUST be able to navegar, buscar e filtrar anúncios por nome, edição, condição, idioma e faixa de preço; a navegação, busca e filtragem MUST estar disponível também a visitantes não autenticados.
-- **FR-026a**: System MUST exigir conta para comprar, vender, criar coleção ou criar wishlist; quando um visitante não autenticado tentar uma dessas ações, o app MUST conduzi-lo ao cadastro/login e retorná-lo ao ponto de origem após a autenticação.
+- **FR-026a**: System MUST exigir conta para comprar, vender, manter coleção (criar/adicionar cartas) ou manter wishlists — inclusive quando a ação parte do explorador de catálogo; quando um visitante não autenticado tentar uma dessas ações, o app MUST conduzi-lo ao cadastro/login e retorná-lo ao ponto de origem após a autenticação.
 - **FR-027**: System MUST processar o pagamento dentro da plataforma, aceitando Pix e cartão de crédito, e reter o valor em custódia até a conclusão do fluxo.
 - **FR-028**: System MUST reter uma comissão percentual da plataforma sobre cada venda concluída, deduzida no momento da liberação ao vendedor.
 - **FR-029**: System MUST conduzir o pedido pelo fluxo: pago → envio confirmado pelo vendedor com código de rastreio → recebimento confirmado pelo comprador → valor liberado ao vendedor menos comissão.
@@ -378,7 +418,7 @@ O colecionador cria uma ou mais wishlists nomeadas (ex.: "Completar Base Set", "
 - **Visitante**: pessoa sem conta (ou não autenticada); pode visualizar coleções públicas via link e navegar/buscar anúncios do marketplace, mas não pode comprar, vender ou manter coleção.
 - **Perfil de Vendedor**: extensão do usuário habilitada para vender; a verificação de identidade e dados bancários é feita pelo provedor de pagamentos, e a plataforma guarda apenas o status (pendente, aprovada, recusada); pré-requisito para anunciar.
 - **Carta (Catálogo)**: carta oficial de Pokémon TCG com nome, edição/coleção, número, raridade, tipo, idioma disponível (PT/EN) e imagem oficial; origem em fonte externa de catálogo.
-- **Edição/Coleção (Set)**: agrupamento oficial de cartas com total conhecido, usado para completude.
+- **Edição/Coleção (Set)**: agrupamento oficial de cartas com total conhecido, logo e data de lançamento; usado para completude (FR-020/FR-072) e navegação do explorador de catálogo (FR-068).
 - **Item da Coleção**: vínculo entre usuário e carta do catálogo com condição, idioma, quantidade, data de adição e preço de aquisição opcional; unidade básica do inventário.
 - **Cotação de Preço**: preço de mercado em BRL de uma carta (considerando condição/idioma quando disponível), com data/hora da atualização e origem; mantém última versão conhecida como fallback.
 - **Snapshot de Preço da Carta**: registro histórico periódico do preço de uma carta (por condição/idioma quando disponível), gerado a cada ciclo de atualização de cotações; base dos gráficos de histórico, variações percentuais, maior/menor preço, indicadores de tendência e rankings de valorização.
@@ -400,7 +440,7 @@ O colecionador cria uma ou mais wishlists nomeadas (ex.: "Completar Base Set", "
 - **SC-001**: Um usuário novo cria conta e adiciona sua primeira carta à coleção em menos de 3 minutos.
 - **SC-002**: Adicionar uma carta pelo registro manual (busca + confirmação) leva menos de 30 segundos por carta.
 - **SC-003**: 95% das buscas no catálogo com autocomplete exibem sugestões em menos de 1 segundo.
-- **SC-004**: 100% das cartas da coleção com cotação disponível exibem preço em BRL e data da última atualização; cotações nunca ficam mais de 24 horas sem tentativa de atualização.
+- **SC-004**: 100% das cartas da coleção com cotação disponível exibem preço em BRL e data da última atualização; cotações de cartas em coleções, wishlists e anúncios ativos (e de edições recentes/populares) nunca ficam mais de 24 horas sem tentativa de atualização, e as do restante do catálogo nunca mais de 7 dias.
 - **SC-005**: Com a fonte de preços indisponível, 100% das funcionalidades do app permanecem operacionais exibindo as últimas cotações conhecidas.
 - **SC-006**: O scanner identifica corretamente (na captura automática ou entre as opções de "a revisar") pelo menos 80% das cartas em condições normais de iluminação doméstica, dentro ou fora de sleeves, a um ritmo médio de pelo menos 10 cartas por minuto no modo contínuo.
 - **SC-006a**: O tempo entre enquadrar uma carta detectável e sua captura na sessão é de no máximo 2 segundos em condições normais.
@@ -408,6 +448,7 @@ O colecionador cria uma ou mais wishlists nomeadas (ex.: "Completar Base Set", "
 - **SC-006c**: 100% das sessões interrompidas são recuperáveis (retomar ou descartar) na reabertura do app, sem perda das capturas já realizadas.
 - **SC-006d**: Com a gravação ativa, o desempenho de detecção mantém os patamares de SC-006 e SC-006a (sem degradação perceptível); em aparelhos sem capacidade, a gravação é desativada com aviso em 100% dos casos, sem interromper o escaneamento.
 - **SC-006e**: 100% dos vídeos de sessão permanecem apenas no dispositivo (nenhum tráfego de vídeo aos servidores da plataforma), e descartar o vídeo preserva 100% das capturas da sessão.
+- **SC-006f**: O idioma é identificado corretamente em pelo menos 90% das capturas de cartas em português ou inglês em condições normais; capturas com idioma indeterminado entram como inglês em 100% dos casos, nunca sem idioma.
 - **SC-007**: 100% dos fluxos do app são completáveis sem uso da câmera.
 - **SC-008**: Um comprador completa uma compra no marketplace (do anúncio ao pagamento confirmado) em menos de 3 minutos.
 - **SC-009**: 100% das movimentações financeiras possuem registro de auditoria completo; nenhuma transação termina em estado inconsistente nos testes de falha (pagamento recusado, interrupção no meio do fluxo, reenvio duplicado).
@@ -417,15 +458,17 @@ O colecionador cria uma ou mais wishlists nomeadas (ex.: "Completar Base Set", "
 - **SC-013**: 100% das tentativas de compra, venda ou criação de coleção por visitantes não autenticados resultam em direcionamento ao cadastro/login, com retorno ao ponto de origem após a autenticação.
 - **SC-014**: 100% das cartas da coleção com cotação exibem tela de detalhes com valor unitário pela condição e valor total da posição; cartas com histórico suficiente exibem gráfico e variações por período, e as demais exibem "histórico indisponível" — nunca um gráfico vazio ou variação enganosa.
 - **SC-015**: Para 100% dos itens com preço de aquisição informado, o ganho/perda exibido em reais e percentual corresponde exatamente à diferença entre a cotação atual e o preço pago.
-- **SC-016**: Após cada ciclo de atualização de cotações, 100% das cartas com preço obtido têm um novo snapshot registrado no histórico.
+- **SC-016**: Após cada ciclo de atualização de cotações (diário prioritário ou rotativo do restante do catálogo), 100% das cartas com preço obtido naquele ciclo têm um novo snapshot registrado no histórico.
 - **SC-017**: Um usuário cria uma wishlist e adiciona uma carta com preço-alvo em menos de 1 minuto.
 - **SC-018**: 100% das notificações de preço-alvo correspondem a um preço de mercado igual ou abaixo do alvo no momento do envio; nenhuma carta gera mais de uma notificação sem rearme ou sem o intervalo mínimo decorrido nos testes de oscilação.
 - **SC-019**: 100% das cartas de wishlist já presentes na coleção aparecem sinalizadas, e o registro de uma carta em wishlist na coleção sempre dispara a pergunta de remoção (ou a remoção automática, quando ativada).
+- **SC-020**: Qualquer pessoa (com ou sem conta) chega da lista de edições ao detalhe de uma carta em no máximo 3 toques; 100% das cartas e edições do catálogo são acessíveis sem conta.
+- **SC-021**: 95% das buscas globais do catálogo (nome + filtros) exibem resultados em menos de 1 segundo; a visão de completude de uma edição reflete exatamente a contagem possuídas/faltantes da coleção do usuário em 100% dos testes.
 
 ## Assumptions
 
 - A comissão da plataforma é um percentual único configurável pela operação (valor definido pelo negócio, não fixado nesta especificação); mudanças de percentual valem apenas para vendas futuras.
-- Os preços de referência vêm de fonte(s) externas do mercado brasileiro de cartas; a fonte pode falhar ou mudar, por isso o sistema mantém cache e a última cotação conhecida como fallback (conforme constituição do projeto).
+- Os preços de referência vêm de fonte externa do mercado brasileiro de cartas como primária, com fallback por carta em fonte internacional (USD convertido diariamente a BRL) quando a carta não tem preço na primária ou a coleta falha; a fonte pode falhar ou mudar, por isso o sistema mantém cache e a última cotação conhecida como fallback (conforme constituição do projeto), sempre exibindo fonte e data da cotação.
 - O catálogo de cartas (nomes, edições, números, imagens oficiais) vem de fonte externa reconhecida de dados de Pokémon TCG, com atualização periódica para novas edições.
 - A escala de condição adotada é a de mercado: Mint, Near Mint, Excellent, Good, Played, Damaged.
 - Liberação automática ao vendedor ocorre 7 dias após a entrega indicada pelo rastreio sem confirmação do comprador e sem disputa aberta; o comprador pode abrir disputa dentro desse prazo.
@@ -433,6 +476,9 @@ O colecionador cria uma ou mais wishlists nomeadas (ex.: "Completar Base Set", "
 - O envio físico é responsabilidade do vendedor via transportadora/Correios; a plataforma registra e exibe o código de rastreio, mas não gerencia logística.
 - Resolução de disputas nesta fase é feita por operação humana da plataforma com base nas evidências registradas; automação de disputas fica para fases futuras.
 - Preços de anúncio são livres (definidos pelo vendedor); a cotação de mercado e o histórico de preços servem apenas como referência exibida.
+- Anúncios com múltiplas unidades admitem compra parcial: o pedido tem quantidade própria; as unidades são reservadas na criação do pedido e devolvidas ao anúncio se o pagamento falhar ou expirar dentro da janela de pagamento do provedor.
+- O pedido guarda um retrato dos dados da carta e do preço no momento da compra: edições ou remoções posteriores do anúncio ou da coleção do vendedor não afetam pedidos em andamento.
+- O preço-alvo da wishlist é avaliado contra o menor preço vigente entre as variantes da carta (a wishlist é da carta, não de uma variante); a notificação e a tela indicam qual variante atingiu o alvo.
 - Snapshots de preço por carta são gerados a cada ciclo de atualização de cotações (pelo menos diário) e retidos integralmente nesta fase; políticas de agregação/expurgo de histórico antigo ficam para fases futuras.
 - "Valorização/desvalorização recente" para o indicador de tendência é definida como variação nos últimos 7 dias acima de um limiar configurável pela operação (padrão sugerido: ±5%).
 - "Histórico suficiente" para exibir gráfico exige pelo menos 2 snapshots em datas distintas; variações por período exigem snapshot no início aproximado do período.
@@ -446,6 +492,10 @@ O colecionador cria uma ou mais wishlists nomeadas (ex.: "Completar Base Set", "
 - Limiar de valor de mercado para feedback especial: configurável pela operação (padrão sugerido: R$ 50).
 - Sessões pendentes são retidas até o usuário retomá-las ou descartá-las; apenas uma sessão pendente por usuário por vez (iniciar nova sessão exige resolver a pendente).
 - O resumo estatístico da sessão usa as cotações vigentes no momento da revisão (últimas conhecidas, em caso de fonte indisponível).
+- A identificação de idioma no scanner usa o texto impresso da carta durante o mesmo processo de identificação da captura (sem etapa extra para o usuário); idiomas suportados nesta fase: português e inglês.
+- O catálogo suporta múltiplos idiomas por carta (nome e imagem localizados), populado em português e inglês nesta fase; nomes e imagens localizados em português dependem da disponibilidade na(s) fonte(s) de catálogo — a versão em inglês existe para 100% das cartas e é o fallback universal.
+- O catálogo completo é público por natureza (dados oficiais de terceiros): navegá-lo não expõe nenhum dado de usuários; logos e datas de lançamento das edições vêm das fontes de catálogo, com placeholder quando ausentes.
+- O filtro de faixa de preço do explorador usa a cotação vigente (qualquer fonte); cartas sem cotação ficam fora do filtro com indicação.
 - A preferência de câmera (traseira/frontal) é lembrada por dispositivo; a câmera traseira é o padrão inicial.
 - A gravação registra a experiência tal como exibida (com ou sem áudio de feedback, conforme a configuração de sons do usuário no momento) e é limitada pelo armazenamento disponível no aparelho; não há limite de duração imposto pelo app nesta fase.
 - O vídeo da sessão é retido junto à sessão até o usuário salvá-lo, compartilhá-lo ou descartá-lo; descartar a sessão inteira também descarta o vídeo associado.

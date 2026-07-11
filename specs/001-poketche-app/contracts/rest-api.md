@@ -6,12 +6,18 @@ header `Idempotency-Key` e gravam auditoria. Erros: `{ error: { code, message } 
 padrão (400 validação, 401/403 auth, 404, 409 conflito/estado inválido, 422 regra de negócio).
 
 ## Catálogo
+
+> Rotas 🔓 de catálogo são as de maior tráfego (públicas): todas paginadas e servidas com
+> `Cache-Control` + `ETag` (invalidação no sync diário); payloads não contêm dados por usuário.
 | Método/Rota | Descrição |
 |---|---|
-| 🔓 GET `/catalog/cards?q=&set=&limit=` | Autocomplete/busca (nome, edição, número, imagem) — SC-003 |
-| 🔓 GET `/catalog/cards/:id` | Detalhe da carta + preço vigente + histórico resumido (FR-043) |
+| 🔓 GET `/catalog/cards?q=&set=&rarity=&type=&price_min=&price_max=&limit=&lang=` | Busca única (autocomplete e explorador) sobre nomes localizados de todos os idiomas (EN+PT), filtros combináveis; filtro de preço exclui cartas sem cotação com indicação (FR-069); resposta traz nome/imagem no idioma pedido com fallback EN (FR-011) — SC-003/SC-021 |
+| 🔓 GET `/catalog/cards/:id?lang=` | Detalhe da carta (localizado, fallback EN, imagem em alta) + preço vigente com `{price_cents, source, fetched_at}` (FR-012/FR-013/FR-070) + histórico resumido (FR-043); payload público e cacheável — posse do usuário (FR-071) vem de `GET /collection/items?card_id=` |
 | 🔓 GET `/catalog/cards/:id/price-history?period=7d|30d|90d|all` | Snapshots p/ gráfico (FR-038) |
-| 🔓 GET `/catalog/sets` | Edições (totais p/ completude) |
+| 🔓 GET `/catalog/sets` | Lista de edições: logo, data de lançamento, total de cartas (FR-068) |
+| 🔓 GET `/catalog/sets/:id/cards?lang=&page=` | Grade da edição com thumbnails (paginada); payload público e cacheável — indicadores de posse (FR-072) vêm de `GET /catalog/sets/:id/completion` |
+| GET `/catalog/sets/:id/completion` | Possuídas vs. faltantes da edição do usuário + atalho em lote p/ wishlist (FR-072) |
+| 🔓 GET `/catalog/cards/:id/listings` | Anúncios ativos da carta (ação rápida do detalhe, FR-071) |
 
 ## Conta e perfil
 | Método/Rota | Descrição |
@@ -28,7 +34,7 @@ padrão (400 validação, 401/403 auth, 404, 409 conflito/estado inválido, 422 
 |---|---|
 | GET `/collection?filter=&sort=` | Itens com preço vigente, valor da posição e tendência (FR-039/FR-041) |
 | POST `/collection/items` | Adiciona item (card, condition, language, quantity, acquisition_price_cents?) — FR-008; merge por unique (FR-009); retorna `wishlist_matches[]` p/ pergunta de remoção (FR-052) |
-| PATCH/DELETE `/collection/items/:id` | Edita/remove (FR-010) |
+| PATCH/DELETE `/collection/items/:id` | Edita/remove (FR-010); 422 ao reduzir quantidade abaixo do comprometido em anúncios ativos; remoção desativa anúncios vinculados (pedidos em andamento não são afetados — snapshot no pedido) |
 | GET `/collection/items/:id/details` | Tela de detalhes: preço atual, variações 7/30/90d/desde-adição, maior/menor, ganho/perda (FR-038–FR-040/FR-042) |
 
 ## Estatísticas
@@ -56,7 +62,7 @@ padrão (400 validação, 401/403 auth, 404, 409 conflito/estado inválido, 422 
 | Método/Rota | Descrição |
 |---|---|
 | POST `/scan/sessions` | Cria sessão (409 se já houver pendente); PATCH p/ camera/recorded |
-| POST `/scan/sessions/:id/captures` | Envia crop (imagem pequena) → `{status: identified|needs_review, card, candidates[], confidence}` (FR-022/FR-023) — SC-006a |
+| POST `/scan/sessions/:id/captures` | Envia crop (imagem pequena) → `{status: identified|needs_review, card, candidates[], confidence, language: pt|en, language_detected: bool, variant: normal|reverse_foil|holo, method: ocr|visual_match}` — contrato do `CardIdentifier`: idioma automático (indeterminado → `en`), variante default `normal` quando não determinável, método trocável sem mudar o fluxo de sessões (FR-022/FR-023/FR-067) — SC-006a |
 | PATCH/DELETE `/scan/sessions/:id/captures/:capId` | Resolver "a revisar", ajustar qty/condição/idioma, excluir (FR-056) |
 | GET `/scan/sessions/:id/summary` | Resumo estatístico (FR-057) |
 | POST `/scan/sessions/:id/confirm` | Adiciona à coleção + wishlist_matches (FR-058) |
@@ -72,14 +78,22 @@ Nota: nenhum endpoint recebe vídeo — gravações nunca saem do dispositivo (F
 | 🔓 GET `/listings/:id` | Detalhe + histórico de preço da carta (FR-043) |
 | POST `/listings` | Cria anúncio (422 se quantity > possuída; exige KYC aprovado) (FR-025) |
 | PATCH `/listings/:id` | Editar/desativar |
-| 💰 POST `/orders` | Compra: `{listing_id, payment_method}` → cria pedido + cobrança no provedor (Pix QR/cartão); congela comissão; trava unidade (FR-027/FR-033) |
+| 💰 POST `/orders` | Compra: `{listing_id, quantity, payment_method}` → **reserva atômica** de `quantity` unidades no anúncio (409 se disponível insuficiente — compras simultâneas perdem antes de qualquer cobrança), cria pedido `pending_payment` com `expires_at` e snapshot da carta + cobrança no provedor (Pix QR/cartão); congela comissão (FR-027/FR-033) |
 | GET `/orders/:id` · GET `/orders?role=buyer|seller` | Acompanhamento com estados e prazos |
 | 💰 POST `/orders/:id/shipment` | Vendedor informa tracking_code → shipped (FR-029) |
 | 💰 POST `/orders/:id/confirm-receipt` | Comprador confirma → released (split libera net ao vendedor) |
 | 💰 POST `/orders/:id/cancel` | Cancelamento conforme estado/prazos (FR-031) |
 | 💰 POST `/orders/:id/dispute` | Abre disputa, suspende liberação (FR-032) |
+| POST `/disputes/:id/evidence` | Solicita URL assinada de upload (bucket R2 **privado**, separado do cache público) → registra anexo; partes da disputa apenas |
+| GET `/disputes/:id/evidence` | Lista anexos com URLs assinadas de curta duração — acesso restrito às partes e ao papel `admin` |
 | POST `/orders/:id/review` | Avaliação 1–5 (FR-036) |
 | 🔓 GET `/sellers/:id/reputation` | Reputação pública |
+
+## Admin (papel `admin` no Supabase; back-office interno de disputas)
+| Método/Rota | Descrição |
+|---|---|
+| GET `/admin/disputes?status=open` | Fila de disputas com evidências das partes |
+| 💰 POST `/admin/disputes/:id/resolve` | `{outcome: refund_buyer | release_seller, notes}` → executa via PaymentProvider + auditoria (FR-032) |
 
 ## Webhooks (entrada, assinados)
 | Rota | Descrição |
@@ -87,7 +101,9 @@ Nota: nenhum endpoint recebe vídeo — gravações nunca saem do dispositivo (F
 | POST `/webhooks/payments` | Eventos do provedor (pagamento aprovado/recusado, transferência, reembolso) → transições de estado + auditoria; idempotente por `provider_event_id` |
 
 ## Jobs internos (sem rota; pg_boss)
-`catalog-sync` (diário) · `price-refresh` (diário, FR-013) · `price-snapshot` (após refresh,
+`catalog-sync` (diário) · `image-backfill` (após sync; prioridade: thumbnails de edições
+recentes/populares → cartas em coleções/wishlists/anúncios → restante) · `price-refresh`
+(diário, FR-013) · `price-snapshot` (após refresh,
 FR-037) · `collection-value-snapshot` (diário) · `wishlist-alerts` (após refresh, FR-046/047) ·
-`order-deadlines` (liberação automática 7d pós-entrega, cancelamento por não-envio 5 dias úteis,
-FR-030/031) · `payments-reconciliation` (reconciliação com o provedor).
+`order-deadlines` (expiração de `pending_payment` com devolução da reserva ao anúncio; liberação
+automática 7d pós-entrega; cancelamento por não-envio 5 dias úteis, FR-030/031) · `payments-reconciliation` (reconciliação com o provedor).

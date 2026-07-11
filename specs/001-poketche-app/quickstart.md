@@ -34,15 +34,16 @@ Critério: 100% verde antes de qualquer merge que toque dinheiro; invariante
 | Story | Cenário de validação | Resultado esperado |
 |---|---|---|
 | US1 Contas | Cadastrar por e-mail, logar com Google/Apple (sandbox), alternar visibilidade, gerar link | Coleção privada por padrão; link abre visão pública; revogar → 404 (SC-012) |
-| US2 Coleção | Buscar "Charizard" no autocomplete, adicionar com condição/idioma/preço de aquisição, editar, remover | Sugestões < 1 s (SC-003); item com imagem e atributos; merge de duplicata por (carta, condição, idioma) |
-| US3 Preços | Rodar `price-refresh`; derrubar a fonte (flag no adapter) e rodar de novo | Preço BRL + data em cada carta; com fonte fora, última cotação mantida e app funcional (SC-005) |
+| US2 Coleção | Buscar "Charizard" e um nome PT no autocomplete, adicionar com condição/idioma/preço de aquisição, editar, remover | Sugestões < 1 s (SC-003) em ambos os idiomas; item PT exibe arte PT quando disponível (fallback EN, FR-011); merge de duplicata por (carta, condição, idioma) |
+| US3 Preços | Rodar `price-refresh` com carta coberta pela fonte BR e carta só com preço internacional; derrubar a fonte primária (flag no adapter) e rodar de novo | Preço BRL + **fonte + data** em cada carta (FR-012/013); carta sem preço BR usa fallback USD+câmbio; com primária fora, ciclo completa via fallback e última cotação é mantida (SC-005) |
 | US8 Por carta | Rodar refresh em dias distintos (ou fixtures de snapshot); abrir detalhes | Gráfico, variações 7/30/90d, maior/menor, ganho/perda vs. aquisição (SC-014/015); "histórico indisponível" com <2 snapshots |
 | US4 Dashboard | Coleção com fixtures variadas; abrir stats | Total = Σ preço×qtd; distribuições, rankings, completude batem com fixtures |
 | US9 Wishlists | Criar wishlist com alvo acima do preço; baixar preço via fixture; rodar `wishlist-alerts` 2× | 1 push recebido (Expo), sem repetição (SC-018); indicador de alvo na tela; carta possuída sinalizada |
-| US5 Scanner | Dev build em aparelho físico: sessão sobre ~10 cartas reais (com foil e duplicata); interromper app no meio; gravar uma sessão | ≥80% identificadas (SC-006), captura ≤2 s (SC-006a); foil → "a revisar"; duplicata incrementa; sessão recuperável (SC-006c); nada na coleção antes de confirmar (SC-006b); vídeo só no aparelho (SC-006e) |
+| US5 Scanner | Dev build em aparelho físico: sessão sobre ~10 cartas reais misturando PT e EN (com foil e duplicata); interromper app no meio; gravar uma sessão | ≥80% identificadas (SC-006), captura ≤2 s (SC-006a); idioma automático correto ≥90% e indeterminado → EN (SC-006f); resposta indica `method` (ocr/visual_match); foil → "a revisar"; duplicata incrementa; sessão recuperável (SC-006c); nada na coleção antes de confirmar (SC-006b); vídeo só no aparelho (SC-006e) |
 | US6 Marketplace | Dois usuários (vendedor com KYC sandbox aprovado): anunciar → comprar com Pix sandbox → tracking → confirmar recebimento | Estados pending_payment→paid→shipped→received→released; net = preço − comissão (SC-010); cada transição em `financial_audit_log` (SC-009); pagamento recusado não trava anúncio |
 | US6 Disputa | Pedido shipped → abrir disputa → resolver a favor do comprador | Liberação suspensa; reembolso via sandbox; auditoria completa |
 | US7 Visitante | Sem sessão autenticada: abrir link público e `/listings`; tentar comprar | Navegação livre; ação restrita → fluxo de cadastro com retorno ao contexto (SC-013) |
+| US10 Catálogo | Sem conta: edições → grade → detalhe com preço/histórico; com conta: indicador de posse, ações rápidas e completude da edição com atalho p/ wishlist | Detalhe em ≤3 toques sem conta (SC-020); busca com filtros <1 s (SC-021); completude bate com a coleção; visitante não vê posse; ação restrita → cadastro (FR-026a) |
 
 ## Checks transversais
 
