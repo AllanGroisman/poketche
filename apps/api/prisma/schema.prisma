@@ -1,0 +1,634 @@
+// PokeTche — schema de dados (Phase 1). Fiel a specs/001-poketche-app/data-model.md.
+// Valores monetários SEMPRE em centavos inteiros (Int, sufixo _cents). Ids UUID.
+//
+// Constraints que o Prisma schema não expressa e vão em migration SQL manual
+// (ver prisma/migrations/manual/0001_constraints.sql):
+//   - card_price: UNIQUE (card_id, condition, variant, source) NULLS NOT DISTINCT (PG16)
+//   - listing:    CHECK (quantity_reserved >= 0 AND quantity_sold >= 0
+//                        AND quantity_reserved + quantity_sold <= quantity)
+//   - financial_audit_log: REVOKE UPDATE, DELETE (append-only, FR-035)
+//   - índice GIN pg_trgm em card_translation.name (autocomplete multilíngue)
+
+generator client {
+  provider        = "prisma-client-js"
+  previewFeatures = ["postgresqlExtensions"]
+}
+
+datasource db {
+  provider   = "postgresql"
+  url        = env("DATABASE_URL")
+  extensions = [pgTrgm(map: "pg_trgm"), vector]
+}
+
+// ============================ Enums ============================
+
+enum Language {
+  en
+  pt
+}
+
+enum TranslationSource {
+  pokemontcgio
+  tcgdex
+}
+
+enum Condition {
+  mint
+  near_mint
+  excellent
+  good
+  played
+  damaged
+}
+
+enum Variant {
+  normal
+  reverse_foil
+  holo
+}
+
+enum CameraPref {
+  back
+  front
+}
+
+enum VisibilityStatus {
+  private
+  public_link
+}
+
+enum KycStatus {
+  pending
+  approved
+  rejected
+}
+
+enum PriceSource {
+  liga_pokemon
+  intl_usd_fx
+}
+
+enum WishlistAlertState {
+  armed
+  notified
+}
+
+enum ScanSessionStatus {
+  active
+  pending
+  confirmed
+  discarded
+}
+
+enum ScanCaptureStatus {
+  identified
+  needs_review
+}
+
+enum IdentificationMethod {
+  ocr
+  visual_match
+  manual
+}
+
+enum ListingStatus {
+  active
+  sold
+  deactivated
+}
+
+enum CheckoutStatus {
+  pending_payment
+  paid
+  failed
+  expired
+}
+
+enum OrderStatus {
+  pending_payment
+  paid
+  shipped
+  received
+  released
+  cancelled
+  disputed
+  refunded
+}
+
+enum Carrier {
+  correios
+  jadlog
+  loggi
+  other
+}
+
+enum PaymentMethod {
+  pix
+  credit_card
+}
+
+enum DisputeReason {
+  not_received
+  not_as_described
+}
+
+enum DisputeStatus {
+  open
+  awaiting_parties
+  resolved_buyer
+  resolved_seller
+}
+
+enum AuditActor {
+  user
+  system
+  webhook
+}
+
+// ==================== Catálogo (terceiros) ====================
+
+model CardSet {
+  id         String    @id @default(uuid()) @db.Uuid
+  externalId String    @unique @map("external_id")
+  name       String
+  series     String
+  totalCards Int       @map("total_cards")
+  releaseDate DateTime? @map("release_date") @db.Date
+  logoUrl    String?   @map("logo_url")
+  syncedAt   DateTime  @default(now()) @map("synced_at") @db.Timestamptz
+  createdAt  DateTime  @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt  DateTime  @updatedAt @map("updated_at") @db.Timestamptz
+
+  cards Card[]
+
+  @@map("card_set")
+}
+
+model Card {
+  id         String   @id @default(uuid()) @db.Uuid
+  externalId String   @unique @map("external_id")
+  setId      String   @map("set_id") @db.Uuid
+  number     String
+  rarity     String
+  supertype  String
+  subtypes   String[]
+  types      String[]
+  syncedAt   DateTime @default(now()) @map("synced_at") @db.Timestamptz
+  createdAt  DateTime @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt  DateTime @updatedAt @map("updated_at") @db.Timestamptz
+
+  set          CardSet           @relation(fields: [setId], references: [id])
+  translations CardTranslation[]
+  prices       CardPrice[]
+  snapshots    CardPriceSnapshot[]
+  collectionItems CollectionItem[]
+  wishlistItems   WishlistItem[]
+  scanCaptures    ScanCapture[]
+
+  @@unique([setId, number])
+  @@index([rarity])
+  @@index([types], type: Gin)
+  @@map("card")
+}
+
+model CardTranslation {
+  id            String            @id @default(uuid()) @db.Uuid
+  cardId        String            @map("card_id") @db.Uuid
+  language      Language
+  name          String
+  imageSmallUrl String            @map("image_small_url")
+  imageLargeUrl String            @map("image_large_url")
+  imageHash     String?           @map("image_hash")
+  imageEmbedding Unsupported("vector")? @map("image_embedding")
+  source        TranslationSource
+  syncedAt      DateTime          @default(now()) @map("synced_at") @db.Timestamptz
+
+  card Card @relation(fields: [cardId], references: [id], onDelete: Cascade)
+
+  @@unique([cardId, language])
+  @@index([name(ops: raw("gin_trgm_ops"))], type: Gin)
+  @@map("card_translation")
+}
+
+// ==================== Identidade e privacidade ====================
+
+model UserProfile {
+  id                   String     @id @db.Uuid // = id do Supabase Auth
+  displayName          String     @map("display_name")
+  notificationsEnabled Boolean    @default(true) @map("notifications_enabled")
+  wishlistAutoRemove   Boolean    @default(false) @map("wishlist_auto_remove")
+  scannerSoundsEnabled Boolean    @default(true) @map("scanner_sounds_enabled")
+  preferredCamera      CameraPref @default(back) @map("preferred_camera")
+  buyerRatingAvg       Decimal    @default(0) @map("buyer_rating_avg") @db.Decimal(3, 2)
+  buyerRatingCount     Int        @default(0) @map("buyer_rating_count")
+  createdAt            DateTime   @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt            DateTime   @updatedAt @map("updated_at") @db.Timestamptz
+
+  visibility     CollectionVisibility?
+  seller         SellerProfile?
+  addresses      UserAddress[]
+  collectionItems CollectionItem[]
+  valueSnapshots CollectionValueSnapshot[]
+  wishlists      Wishlist[]
+  scanSessions   ScanSession[]
+  listings       Listing[]
+  cartItems      CartItem[]
+  checkouts      Checkout[]
+  ordersAsBuyer  Order[] @relation("BuyerOrders")
+  ordersAsSeller Order[] @relation("SellerOrders")
+  pushTokens     PushToken[]
+
+  @@map("user_profile")
+}
+
+model CollectionVisibility {
+  userId         String           @id @map("user_id") @db.Uuid
+  status         VisibilityStatus @default(private)
+  shareToken     String?          @unique @map("share_token")
+  showCards      Boolean          @default(true) @map("show_cards")
+  showValues     Boolean          @default(false) @map("show_values")
+  showQuantities Boolean          @default(false) @map("show_quantities")
+  updatedAt      DateTime         @updatedAt @map("updated_at") @db.Timestamptz
+
+  user UserProfile @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("collection_visibility")
+}
+
+model SellerProfile {
+  userId             String    @id @map("user_id") @db.Uuid
+  providerRecipientId String?  @map("provider_recipient_id")
+  kycStatus          KycStatus @default(pending) @map("kyc_status")
+  ratingAvg          Decimal   @default(0) @map("rating_avg") @db.Decimal(3, 2)
+  ratingCount        Int       @default(0) @map("rating_count")
+  createdAt          DateTime  @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt          DateTime  @updatedAt @map("updated_at") @db.Timestamptz
+
+  user UserProfile @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("seller_profile")
+}
+
+model UserAddress {
+  id            String   @id @default(uuid()) @db.Uuid
+  userId        String   @map("user_id") @db.Uuid
+  label         String?
+  recipientName String   @map("recipient_name")
+  street        String
+  number        String
+  complement    String?
+  district      String
+  city          String
+  state         String
+  zipCode       String   @map("zip_code")
+  createdAt     DateTime @default(now()) @map("created_at") @db.Timestamptz
+
+  user UserProfile @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("user_address")
+}
+
+// ==================== Coleção e preços ====================
+
+model CollectionItem {
+  id                    String    @id @default(uuid()) @db.Uuid
+  userId                String    @map("user_id") @db.Uuid
+  cardId                String    @map("card_id") @db.Uuid
+  condition             Condition
+  language              Language
+  variant               Variant   @default(normal)
+  quantity              Int
+  acquisitionPriceCents Int?      @map("acquisition_price_cents")
+  addedAt               DateTime  @default(now()) @map("added_at") @db.Timestamptz
+  updatedAt             DateTime  @updatedAt @map("updated_at") @db.Timestamptz
+
+  user UserProfile @relation(fields: [userId], references: [id], onDelete: Cascade)
+  card Card        @relation(fields: [cardId], references: [id])
+  listings Listing[]
+
+  @@unique([userId, cardId, condition, language, variant])
+  @@index([userId])
+  @@map("collection_item")
+}
+
+model CardPrice {
+  id         String      @id @default(uuid()) @db.Uuid
+  cardId     String      @map("card_id") @db.Uuid
+  condition  Condition?
+  variant    Variant     @default(normal)
+  priceCents Int         @map("price_cents")
+  source     PriceSource
+  fxRate     Decimal?    @map("fx_rate") @db.Decimal(10, 4)
+  fetchedAt  DateTime    @default(now()) @map("fetched_at") @db.Timestamptz
+
+  card Card @relation(fields: [cardId], references: [id], onDelete: Cascade)
+
+  // UNIQUE real (com NULLS NOT DISTINCT) criado na migration manual — ver cabeçalho.
+  @@unique([cardId, condition, variant, source])
+  @@index([cardId, priceCents])
+  @@map("card_price")
+}
+
+model CardPriceSnapshot {
+  id         String      @id @default(uuid()) @db.Uuid
+  cardId     String      @map("card_id") @db.Uuid
+  condition  Condition?
+  variant    Variant     @default(normal)
+  priceCents Int         @map("price_cents")
+  source     PriceSource
+  fxRate     Decimal?    @map("fx_rate") @db.Decimal(10, 4)
+  fetchedAt  DateTime    @map("fetched_at") @db.Timestamptz
+
+  card Card @relation(fields: [cardId], references: [id], onDelete: Cascade)
+
+  @@index([cardId, fetchedAt])
+  @@map("card_price_snapshot")
+}
+
+model CollectionValueSnapshot {
+  id            String   @id @default(uuid()) @db.Uuid
+  userId        String   @map("user_id") @db.Uuid
+  totalCents    Int      @map("total_cents")
+  pricedItems   Int      @map("priced_items")
+  unpricedItems Int      @map("unpriced_items")
+  takenAt       DateTime @default(now()) @map("taken_at") @db.Timestamptz
+
+  user UserProfile @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, takenAt])
+  @@map("collection_value_snapshot")
+}
+
+// ==================== Wishlists ====================
+
+model Wishlist {
+  id                   String   @id @default(uuid()) @db.Uuid
+  userId               String   @map("user_id") @db.Uuid
+  name                 String
+  notificationsEnabled Boolean  @default(true) @map("notifications_enabled")
+  createdAt            DateTime @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt            DateTime @updatedAt @map("updated_at") @db.Timestamptz
+
+  user  UserProfile    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  items WishlistItem[]
+
+  @@index([userId])
+  @@map("wishlist")
+}
+
+model WishlistItem {
+  id               String             @id @default(uuid()) @db.Uuid
+  wishlistId       String             @map("wishlist_id") @db.Uuid
+  cardId           String             @map("card_id") @db.Uuid
+  targetPriceCents Int?               @map("target_price_cents")
+  alertState       WishlistAlertState @default(armed) @map("alert_state")
+  lastNotifiedAt   DateTime?          @map("last_notified_at") @db.Timestamptz
+  createdAt        DateTime           @default(now()) @map("created_at") @db.Timestamptz
+
+  wishlist Wishlist @relation(fields: [wishlistId], references: [id], onDelete: Cascade)
+  card     Card     @relation(fields: [cardId], references: [id])
+
+  @@unique([wishlistId, cardId])
+  @@map("wishlist_item")
+}
+
+// ==================== Scanner ====================
+
+model ScanSession {
+  id          String            @id @default(uuid()) @db.Uuid
+  userId      String            @map("user_id") @db.Uuid
+  status      ScanSessionStatus @default(active)
+  camera      CameraPref        @default(back)
+  recorded    Boolean           @default(false)
+  confirmedAt DateTime?         @map("confirmed_at") @db.Timestamptz
+  discardedAt DateTime?         @map("discarded_at") @db.Timestamptz
+  createdAt   DateTime          @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt   DateTime          @updatedAt @map("updated_at") @db.Timestamptz
+
+  user     UserProfile   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  captures ScanCapture[]
+
+  @@index([userId, status])
+  @@map("scan_session")
+}
+
+model ScanCapture {
+  id                   String               @id @default(uuid()) @db.Uuid
+  sessionId            String               @map("session_id") @db.Uuid
+  cardId               String?              @map("card_id") @db.Uuid
+  status               ScanCaptureStatus
+  candidates           Json                 @default("[]")
+  condition            Condition?
+  language             Language?
+  quantity             Int                  @default(1)
+  languageDetected     Boolean              @default(false) @map("language_detected")
+  variant              Variant              @default(normal)
+  identificationMethod IdentificationMethod @map("identification_method")
+  createdAt            DateTime             @default(now()) @map("created_at") @db.Timestamptz
+
+  session ScanSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  card    Card?       @relation(fields: [cardId], references: [id])
+
+  @@index([sessionId])
+  @@map("scan_capture")
+}
+
+// ==================== Marketplace ====================
+
+model Listing {
+  id                 String        @id @default(uuid()) @db.Uuid
+  sellerId           String        @map("seller_id") @db.Uuid
+  collectionItemId   String        @map("collection_item_id") @db.Uuid
+  priceCents         Int           @map("price_cents")
+  shippingPriceCents Int           @default(0) @map("shipping_price_cents")
+  condition          Condition
+  language           Language
+  variant            Variant       @default(normal)
+  quantity           Int
+  quantityReserved   Int           @default(0) @map("quantity_reserved")
+  quantitySold       Int           @default(0) @map("quantity_sold")
+  status             ListingStatus @default(active)
+  createdAt          DateTime      @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt          DateTime      @updatedAt @map("updated_at") @db.Timestamptz
+
+  seller         UserProfile    @relation(fields: [sellerId], references: [id])
+  collectionItem CollectionItem @relation(fields: [collectionItemId], references: [id])
+  cartItems      CartItem[]
+  orderItems     OrderItem[]
+
+  @@index([status])
+  @@map("listing")
+}
+
+model CartItem {
+  id        String   @id @default(uuid()) @db.Uuid
+  userId    String   @map("user_id") @db.Uuid
+  listingId String   @map("listing_id") @db.Uuid
+  quantity  Int
+  addedAt   DateTime @default(now()) @map("added_at") @db.Timestamptz
+
+  user    UserProfile @relation(fields: [userId], references: [id], onDelete: Cascade)
+  listing Listing     @relation(fields: [listingId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, listingId])
+  @@map("cart_item")
+}
+
+model Checkout {
+  id              String         @id @default(uuid()) @db.Uuid
+  buyerId         String         @map("buyer_id") @db.Uuid
+  status          CheckoutStatus @default(pending_payment)
+  totalCents      Int            @map("total_cents")
+  paymentMethod   PaymentMethod  @map("payment_method")
+  providerChargeId String?       @map("provider_charge_id")
+  idempotencyKey  String         @unique @map("idempotency_key")
+  expiresAt       DateTime       @map("expires_at") @db.Timestamptz
+  createdAt       DateTime       @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt       DateTime       @updatedAt @map("updated_at") @db.Timestamptz
+
+  buyer  UserProfile @relation(fields: [buyerId], references: [id])
+  orders Order[]
+
+  @@map("checkout")
+}
+
+model Order {
+  id                 String        @id @default(uuid()) @db.Uuid
+  checkoutId         String        @map("checkout_id") @db.Uuid
+  buyerId            String        @map("buyer_id") @db.Uuid
+  sellerId           String        @map("seller_id") @db.Uuid
+  status             OrderStatus   @default(pending_payment)
+  itemsTotalCents    Int           @map("items_total_cents")
+  shippingPriceCents Int           @default(0) @map("shipping_price_cents")
+  totalCents         Int           @map("total_cents")
+  commissionCents    Int           @map("commission_cents")
+  sellerNetCents     Int           @map("seller_net_cents")
+  commissionPct      Decimal       @map("commission_pct") @db.Decimal(5, 4)
+  shippingAddress    Json          @map("shipping_address")
+  carrier            Carrier?
+  carrierName        String?       @map("carrier_name")
+  trackingCode       String?       @map("tracking_code")
+  paidAt             DateTime?     @map("paid_at") @db.Timestamptz
+  shippedAt          DateTime?     @map("shipped_at") @db.Timestamptz
+  receivedAt         DateTime?     @map("received_at") @db.Timestamptz
+  releasedAt         DateTime?     @map("released_at") @db.Timestamptz
+  cancelledAt        DateTime?     @map("cancelled_at") @db.Timestamptz
+  createdAt          DateTime      @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt          DateTime      @updatedAt @map("updated_at") @db.Timestamptz
+
+  checkout Checkout    @relation(fields: [checkoutId], references: [id])
+  buyer    UserProfile @relation("BuyerOrders", fields: [buyerId], references: [id])
+  seller   UserProfile @relation("SellerOrders", fields: [sellerId], references: [id])
+  items    OrderItem[]
+  dispute  Dispute?
+  reviews  Review[]
+  auditLog FinancialAuditLog[]
+
+  @@index([buyerId])
+  @@index([sellerId])
+  @@index([status])
+  @@map("order")
+}
+
+model OrderItem {
+  id             String  @id @default(uuid()) @db.Uuid
+  orderId        String  @map("order_id") @db.Uuid
+  listingId      String  @map("listing_id") @db.Uuid
+  quantity       Int
+  cardId         String  @map("card_id") @db.Uuid
+  condition      Condition
+  language       Language
+  variant        Variant
+  unitPriceCents Int     @map("unit_price_cents")
+  lineTotalCents Int     @map("line_total_cents")
+
+  order   Order   @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  listing Listing @relation(fields: [listingId], references: [id])
+
+  @@index([orderId])
+  @@map("order_item")
+}
+
+model Dispute {
+  id                  String        @id @default(uuid()) @db.Uuid
+  orderId             String        @unique @map("order_id") @db.Uuid
+  openedBy            String        @map("opened_by") @db.Uuid
+  reason              DisputeReason
+  status              DisputeStatus @default(open)
+  infoRequestNote     String?       @map("info_request_note")
+  infoRequestedAt     DateTime?     @map("info_requested_at") @db.Timestamptz
+  infoResponseDeadline DateTime?    @map("info_response_deadline") @db.Timestamptz
+  resolvedBy          String?       @map("resolved_by") @db.Uuid
+  resolvedAt          DateTime?     @map("resolved_at") @db.Timestamptz
+  resolutionNotes     String?       @map("resolution_notes")
+  openedAt            DateTime      @default(now()) @map("opened_at") @db.Timestamptz
+
+  order    Order             @relation(fields: [orderId], references: [id])
+  evidence DisputeEvidence[]
+
+  @@map("dispute")
+}
+
+model DisputeEvidence {
+  id          String   @id @default(uuid()) @db.Uuid
+  disputeId   String   @map("dispute_id") @db.Uuid
+  uploadedBy  String   @map("uploaded_by") @db.Uuid
+  objectKey   String   @map("object_key") // bucket R2 privado `disputes/`
+  contentType String   @map("content_type")
+  sizeBytes   Int      @map("size_bytes")
+  note        String?
+  createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz
+
+  dispute Dispute @relation(fields: [disputeId], references: [id], onDelete: Cascade)
+
+  @@index([disputeId])
+  @@map("dispute_evidence")
+}
+
+model Review {
+  id      String @id @default(uuid()) @db.Uuid
+  orderId String @map("order_id") @db.Uuid
+  raterId String @map("rater_id") @db.Uuid
+  ratedId String @map("rated_id") @db.Uuid
+  stars   Int
+  comment String?
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz
+
+  order Order @relation(fields: [orderId], references: [id], onDelete: Cascade)
+
+  @@unique([orderId, raterId])
+  @@map("review")
+}
+
+model FinancialAuditLog {
+  id             BigInt     @id @default(autoincrement())
+  orderId        String?    @map("order_id") @db.Uuid
+  actor          AuditActor
+  action         String
+  amountCents    Int?       @map("amount_cents")
+  stateBefore    String?    @map("state_before")
+  stateAfter     String?    @map("state_after")
+  providerEventId String?   @map("provider_event_id")
+  createdAt      DateTime   @default(now()) @map("created_at") @db.Timestamptz
+
+  order Order? @relation(fields: [orderId], references: [id])
+
+  @@index([orderId])
+  @@map("financial_audit_log")
+}
+
+// ==================== Push ====================
+
+model PushToken {
+  id        String   @id @default(uuid()) @db.Uuid
+  userId    String   @map("user_id") @db.Uuid
+  expoToken String   @unique @map("expo_token")
+  platform  String
+  lastSeenAt DateTime @default(now()) @map("last_seen_at") @db.Timestamptz
+
+  user UserProfile @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("push_token")
+}

@@ -14,7 +14,7 @@
 ## Requirement Completeness
 
 - [x] No [NEEDS CLARIFICATION] markers remain — o marcador de FR-060 (foil/
-  reflexos) foi resolvido na sessão de clarificação de 2026-07-10
+      reflexos) foi resolvido na sessão de clarificação de 2026-07-10
 - [x] Requirements are testable and unambiguous
 - [x] Success criteria are measurable
 - [x] Success criteria are technology-agnostic (no implementation details)

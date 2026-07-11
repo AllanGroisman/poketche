@@ -18,18 +18,26 @@ transações, comissões — e contratos de adapters externos) e nos fluxos de i
 
 ---
 
+> **Status de implementação (2026-07-11, /speckit-implement)**: Fase 1 (Setup) e o núcleo
+> da Fase 2 (Foundational T009–T015) implementados e **validados** — `prisma validate` OK,
+> `tsc --noEmit` OK, `eslint` OK e **20 testes passando** (money 14, idempotency 3, audit 3).
+> Restam da Fase 2 as tarefas gatilhadas por credenciais/serviços externos (T016–T020:
+> catálogo, proxy de imagens R2, cliente mobile completo) e todas as user stories (Fases 3+).
+> Pendências operacionais antes das fases de dinheiro/integração: `prisma migrate` (requer
+> Postgres de pé), credenciais Supabase/R2/pokemontcg.io, e os spikes T034/T066/T076.
+
 ## Phase 1: Setup (Shared Infrastructure)
 
 **Purpose**: monorepo, apps base e ferramentas — nada específico de story
 
-- [ ] T001 Criar monorepo pnpm workspaces com `apps/mobile` e `apps/api` (package.json raiz, pnpm-workspace.yaml, .gitignore, .editorconfig)
-- [ ] T002 Inicializar `apps/api`: Node 22 + TypeScript 5 + Fastify + Prisma + Zod + pg_boss (apps/api/package.json, tsconfig.json, src/index.ts vazio)
-- [ ] T003 Inicializar `apps/mobile`: Expo SDK managed + expo-router + TypeScript (apps/mobile/package.json, app.json, app/_layout.tsx)
-- [ ] T004 [P] Configurar ESLint + Prettier compartilhados no monorepo (eslint.config.js, .prettierrc na raiz)
-- [ ] T005 [P] docker-compose com PostgreSQL 16 para dev e banco efêmero de teste (docker-compose.yml)
-- [ ] T006 [P] Configuração de ambiente validada com Zod — nunca commitar secrets (apps/api/src/lib/config.ts, apps/api/.env.example)
-- [ ] T007 [P] Setup de testes: Vitest na API (unit/integration/contract com banco efêmero) e Jest + Testing Library no mobile (apps/api/vitest.config.ts, apps/mobile/jest.config.js)
-- [ ] T008 [P] CI mínima: lint + testes nos dois apps (.github/workflows/ci.yml)
+- [x] T001 Criar monorepo pnpm workspaces com `apps/mobile` e `apps/api` (package.json raiz, pnpm-workspace.yaml, .gitignore, .editorconfig)
+- [x] T002 Inicializar `apps/api`: Node 22 + TypeScript 5 + Fastify + Prisma + Zod + pg_boss (apps/api/package.json, tsconfig.json, src/index.ts vazio)
+- [x] T003 Inicializar `apps/mobile`: Expo SDK managed + expo-router + TypeScript (apps/mobile/package.json, app.json, app/_layout.tsx)
+- [x] T004 [P] Configurar ESLint + Prettier compartilhados no monorepo (eslint.config.js, .prettierrc na raiz)
+- [x] T005 [P] docker-compose com PostgreSQL 16 para dev e banco efêmero de teste (docker-compose.yml)
+- [x] T006 [P] Configuração de ambiente validada com Zod — nunca commitar secrets (apps/api/src/lib/config.ts, apps/api/.env.example)
+- [x] T007 [P] Setup de testes: Vitest na API (unit/integration/contract com banco efêmero) e Jest + Testing Library no mobile (apps/api/vitest.config.ts, apps/mobile/jest.config.js)
+- [x] T008 [P] CI mínima: lint + testes nos dois apps (.github/workflows/ci.yml)
 
 ---
 
@@ -39,13 +47,13 @@ transações, comissões — e contratos de adapters externos) e nos fluxos de i
 
 **⚠️ CRITICAL**: nenhuma story começa antes desta fase completa
 
-- [ ] T009 Prisma schema inicial + framework de migrations: card_set, card, card_translation (com índices pg_trgm/GIN do data-model), user_profile, collection_visibility (apps/api/src/db/schema.prisma, migrations/)
-- [ ] T010 Bootstrap Fastify: server, registro de módulos, error handler padrão `{error:{code,message}}` com códigos HTTP do contrato (apps/api/src/app.ts, src/lib/errors.ts)
-- [ ] T011 Auth Supabase: verificação de JWT `Authorization: Bearer`, decorator de usuário, suporte a claim de papel `admin` (apps/api/src/modules/auth/plugin.ts)
-- [ ] T012 [P] Lib de dinheiro em centavos inteiros (nunca float) com testes de unidade (apps/api/src/lib/money.ts, tests/unit/money.test.ts)
-- [ ] T013 [P] Middleware de idempotência por header `Idempotency-Key` para rotas 💰 (apps/api/src/lib/idempotency.ts)
-- [ ] T014 [P] Audit writer + migration de `financial_audit_log` append-only com REVOKE de UPDATE/DELETE (apps/api/src/lib/audit.ts, migration)
-- [ ] T015 Runner pg_boss e registro de jobs no mesmo processo da API (apps/api/src/jobs/index.ts)
+- [x] T009 Prisma schema inicial + framework de migrations: card_set, card, card_translation (com índices pg_trgm/GIN do data-model), user_profile, collection_visibility (apps/api/src/db/schema.prisma, migrations/)
+- [x] T010 Bootstrap Fastify: server, registro de módulos, error handler padrão `{error:{code,message}}` com códigos HTTP do contrato (apps/api/src/app.ts, src/lib/errors.ts)
+- [x] T011 Auth Supabase: verificação de JWT `Authorization: Bearer`, decorator de usuário, suporte a claim de papel `admin` (apps/api/src/modules/auth/plugin.ts)
+- [x] T012 [P] Lib de dinheiro em centavos inteiros (nunca float) com testes de unidade (apps/api/src/lib/money.ts, tests/unit/money.test.ts)
+- [x] T013 [P] Middleware de idempotência por header `Idempotency-Key` para rotas 💰 (apps/api/src/lib/idempotency.ts)
+- [x] T014 [P] Audit writer + migration de `financial_audit_log` append-only com REVOKE de UPDATE/DELETE (apps/api/src/lib/audit.ts, migration)
+- [x] T015 Runner pg_boss e registro de jobs no mesmo processo da API (apps/api/src/jobs/index.ts)
 - [ ] T016 `CatalogProvider` adapter isolado: pokemontcg.io (EN, canônico) + TCGdex (PT, casado por set/número) com testes de contrato por fixtures (apps/api/src/integrations/catalog/, tests/contract/catalog.test.ts)
 - [ ] T017 Job `catalog-sync` diário: sincroniza catálogo multilíngue completo para o Postgres (apps/api/src/jobs/catalog-sync.ts)
 - [ ] T018 Proxy de imagens com cache em Cloudflare R2 + job `image-backfill` priorizado (edições recentes/populares → coleções/wishlists/anúncios → restante; thumbnails antes) (apps/api/src/integrations/storage/r2.ts, src/modules/catalog/images.ts, src/jobs/image-backfill.ts)

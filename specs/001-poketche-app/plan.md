@@ -39,16 +39,16 @@ isoladas em camadas de adapter com cache e fallback, conforme a constituição d
 
 ## Constitution Check
 
-*GATE: Must pass before Phase 0 research. Re-check after Phase 1 design.*
+_GATE: Must pass before Phase 0 research. Re-check after Phase 1 design._
 
-| Princípio | Avaliação | Status |
-|-----------|-----------|--------|
-| I. Qualidade Testada | Testes automatizados planejados para precificação, transações e comissões (Vitest + banco efêmero); user story só é "done" com lógica crítica coberta | PASS |
-| II. Simplicidade Primeiro | Só serviços gerenciados/estabelecidos: Expo, Fastify, Prisma, Supabase Auth, Expo Notifications, Pagar.me; sem microserviços, um ambiente de produção; nenhuma implementação própria de pagamento/auth/push | PASS |
-| III. MVP Incremental | Stories independentes (US1→US11); scanner (US5) isolado com fluxo manual garantido; ordem de entrega P1→P5 (US11, administração de disputas, entregue junto com a US6) | PASS |
-| IV. Dinheiro é Crítico | Split e custódia no provedor de pagamentos (nunca processamento próprio); centavos inteiros; idempotência por chave; tabela de auditoria append-only; webhooks assinados | PASS |
-| V. Isolamento de Dados de Terceiros | Adapters próprios para catálogo (`CatalogProvider`), preços (`PriceProvider`), pagamentos (`PaymentProvider`); cache em Postgres com TTL; fallback = última cotação conhecida | PASS |
-| VI. UX Mobile-First | App Expo único para iOS/Android; estados de loading/erro/retry em todas as telas; fluxos curtos | PASS |
+| Princípio                           | Avaliação                                                                                                                                                                                                   | Status |
+| ----------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------ |
+| I. Qualidade Testada                | Testes automatizados planejados para precificação, transações e comissões (Vitest + banco efêmero); user story só é "done" com lógica crítica coberta                                                       | PASS   |
+| II. Simplicidade Primeiro           | Só serviços gerenciados/estabelecidos: Expo, Fastify, Prisma, Supabase Auth, Expo Notifications, Pagar.me; sem microserviços, um ambiente de produção; nenhuma implementação própria de pagamento/auth/push | PASS   |
+| III. MVP Incremental                | Stories independentes (US1→US11); scanner (US5) isolado com fluxo manual garantido; ordem de entrega P1→P5 (US11, administração de disputas, entregue junto com a US6)                                      | PASS   |
+| IV. Dinheiro é Crítico              | Split e custódia no provedor de pagamentos (nunca processamento próprio); centavos inteiros; idempotência por chave; tabela de auditoria append-only; webhooks assinados                                    | PASS   |
+| V. Isolamento de Dados de Terceiros | Adapters próprios para catálogo (`CatalogProvider`), preços (`PriceProvider`), pagamentos (`PaymentProvider`); cache em Postgres com TTL; fallback = última cotação conhecida                               | PASS   |
+| VI. UX Mobile-First                 | App Expo único para iOS/Android; estados de loading/erro/retry em todas as telas; fluxos curtos                                                                                                             | PASS   |
 
 **Re-check pós-design (Phase 1)**: PASS — o data model usa centavos inteiros e estados explícitos
 de pedido/disputa; os contratos incluem chaves de idempotência nas rotas financeiras; nenhuma
@@ -126,7 +126,7 @@ Nenhuma violação — tabela vazia.
 
 ## Notas e lacunas apontadas à spec
 
-- **Ator administrador (disputas)** — *resolvido em 2026-07-11*: a lacuna antes apontada aqui
+- **Ator administrador (disputas)** — _resolvido em 2026-07-11_: a lacuna antes apontada aqui
   foi fechada por addendum de spec (US11 — administração de disputas: fila, evidências,
   solicitação de informações, decisão com auditoria, conflito de interesse, prazos-alvo;
   FR-078–FR-081, SC-022/SC-023). Design: back-office mínimo em `modules/admin/`, papel `admin`

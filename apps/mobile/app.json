@@ -1,0 +1,22 @@
+{
+  "expo": {
+    "name": "PokeTche",
+    "slug": "poketche",
+    "scheme": "poketche",
+    "version": "0.1.0",
+    "orientation": "portrait",
+    "userInterfaceStyle": "automatic",
+    "newArchEnabled": true,
+    "ios": {
+      "supportsTablet": false,
+      "bundleIdentifier": "com.poketche.app"
+    },
+    "android": {
+      "package": "com.poketche.app"
+    },
+    "plugins": ["expo-router", "expo-camera", "expo-notifications"],
+    "extra": {
+      "apiBaseUrl": "http://localhost:3000/api/v1"
+    }
+  }
+}

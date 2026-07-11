@@ -107,12 +107,12 @@ feedbacks ou gravação (constituição V aplicada internamente).
 **[SPIKE — comparativo antes de fixar]** on-device vs. backend para cada etapa, medindo
 latência (SC-006a ≤ 2 s), custo, precisão (SC-006 ≥ 80%) e funcionamento offline:
 
-| Opção | Prós | Contras |
-|---|---|---|
-| OCR on-device (ML Kit) + lookup local | Rápido, offline, sem custo por captura | Requer o **índice de identificação distribuído** (ver abaixo) — componente novo a construir e manter |
-| OCR no backend | Um só lugar para evoluir; sem índice no app | Latência de rede em cada captura, custo |
-| phash on-device | Offline total, projetos existentes provam viabilidade | Também requer o índice distribuído (hashes); robustez a iluminação varia |
-| Embeddings no backend (pgvector) | Maior precisão em casos difíceis | Rede + infraestrutura de embedding; só se hashing falhar |
+| Opção                                 | Prós                                                  | Contras                                                                                              |
+| ------------------------------------- | ----------------------------------------------------- | ---------------------------------------------------------------------------------------------------- |
+| OCR on-device (ML Kit) + lookup local | Rápido, offline, sem custo por captura                | Requer o **índice de identificação distribuído** (ver abaixo) — componente novo a construir e manter |
+| OCR no backend                        | Um só lugar para evoluir; sem índice no app           | Latência de rede em cada captura, custo                                                              |
+| phash on-device                       | Offline total, projetos existentes provam viabilidade | Também requer o índice distribuído (hashes); robustez a iluminação varia                             |
+| Embeddings no backend (pgvector)      | Maior precisão em casos difíceis                      | Rede + infraestrutura de embedding; só se hashing falhar                                             |
 
 **Custo estrutural da opção on-device — índice de identificação distribuído**: o sync atual é
 apenas fonte→Postgres; identificar no aparelho exige um artefato **gerado no backend a partir do
@@ -183,17 +183,18 @@ particular: (a) reter o valor na plataforma após a captura **sem** repasse auto
 recebedor; (b) liberar ao vendedor (menos comissão) apenas por comando nosso na confirmação de
 recebimento/prazo; (c) reembolsar integralmente durante disputa após a retenção; (d) prazos
 máximos de retenção permitidos pelo provedor compatíveis com nossos prazos (5 dias úteis de envio
-+ 21 dias corridos pós-postagem — sem integração de rastreio, a liberação automática conta da
-postagem, não da entrega); (e) **frete no split**: o valor retido é o total (item + frete) e a
-comissão incide só sobre o item — validar regra de split com frete 100% ao vendedor na liberação
-e reembolso do total (item + frete) ao comprador; (f) **checkout multi-vendedor** (clarificação
-de 2026-07-11): uma cobrança única com split para múltiplos recebedores (um pedido por vendedor)
-e **reembolso parcial** dessa cobrança — necessário tanto para o cancelamento livre do comprador
-antes do envio quanto para disputa de um pedido do grupo sem afetar os demais. Se a cobrança
-única multi-recebedor não for viável, plano B: uma cobrança por pedido no mesmo checkout (pior
-UX no Pix — múltiplos QRs — mas mesmo contrato). Se o split nativo não suportar liberação controlada, avaliar
-o modo alternativo do próprio provedor (recebimento na conta da plataforma + transferência via
-API) ou o Mercado Pago — a decisão do provedor só é definitiva após este spike.
+
+- 21 dias corridos pós-postagem — sem integração de rastreio, a liberação automática conta da
+  postagem, não da entrega); (e) **frete no split**: o valor retido é o total (item + frete) e a
+  comissão incide só sobre o item — validar regra de split com frete 100% ao vendedor na liberação
+  e reembolso do total (item + frete) ao comprador; (f) **checkout multi-vendedor** (clarificação
+  de 2026-07-11): uma cobrança única com split para múltiplos recebedores (um pedido por vendedor)
+  e **reembolso parcial** dessa cobrança — necessário tanto para o cancelamento livre do comprador
+  antes do envio quanto para disputa de um pedido do grupo sem afetar os demais. Se a cobrança
+  única multi-recebedor não for viável, plano B: uma cobrança por pedido no mesmo checkout (pior
+  UX no Pix — múltiplos QRs — mas mesmo contrato). Se o split nativo não suportar liberação controlada, avaliar
+  o modo alternativo do próprio provedor (recebimento na conta da plataforma + transferência via
+  API) ou o Mercado Pago — a decisão do provedor só é definitiva após este spike.
 
 **Administração de disputas no MVP**: quem opera é a **equipe da plataforma** (operação humana,
 como assumido na spec), através de um **back-office mínimo**: endpoints `/admin/*` na própria API
@@ -259,17 +260,17 @@ mais); cron do PaaS (menos observável que pg_boss); AWS direto (complexidade pr
 
 ## 8. Riscos registrados
 
-| Risco | Mitigação |
-|-------|-----------|
-| pokemontcg.io descontinuar/degradar (foco da equipe migrou p/ Scrydex) | Sync local completo + `CatalogProvider` trocável (Scrydex/TCGdex) |
-| Cobertura parcial de PT no TCGdex (edições sem lançamento oficial em português) | Fallback universal EN por carta (FR-011); medir cobertura real no job de sync |
-| Sem acordo com a Liga Pokémon para preços BR | Fallback USD+PTAX operante desde o dia 1, com rótulo de fonte/data no preço |
-| Coleta da Liga quebrar por mudança de HTML | Parser isolado com testes de contrato/fixtures, validação de sanidade, alerta + fallback automático para a fonte internacional |
+| Risco                                                                                                                         | Mitigação                                                                                                                                                                                                                                                                                                                                          |
+| ----------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| pokemontcg.io descontinuar/degradar (foco da equipe migrou p/ Scrydex)                                                        | Sync local completo + `CatalogProvider` trocável (Scrydex/TCGdex)                                                                                                                                                                                                                                                                                  |
+| Cobertura parcial de PT no TCGdex (edições sem lançamento oficial em português)                                               | Fallback universal EN por carta (FR-011); medir cobertura real no job de sync                                                                                                                                                                                                                                                                      |
+| Sem acordo com a Liga Pokémon para preços BR                                                                                  | Fallback USD+PTAX operante desde o dia 1, com rótulo de fonte/data no preço                                                                                                                                                                                                                                                                        |
+| Coleta da Liga quebrar por mudança de HTML                                                                                    | Parser isolado com testes de contrato/fixtures, validação de sanidade, alerta + fallback automático para a fonte internacional                                                                                                                                                                                                                     |
 | **Propriedade intelectual das imagens re-hospedadas** — as artes das cartas são IP da The Pokémon Company e o app é comercial | Incluir no **mesmo parecer legal** previsto para a coleta da Liga: verificar os termos do pokemontcg.io e do TCGdex sobre redistribuição/cache de imagens; enquanto pendente, o proxy opera como cache técnico com atribuição de origem, e o plano B é servir hotlink das fontes com cache HTTP curto (degrada custo/latência, não funcionalidade) |
-| Custódia (retenção + liberação controlada) não suportada como assumido pelo split do Pagar.me | Spike obrigatório em sandbox antes da US6 (research §4); alternativas: modo conta-da-plataforma + transferência via API, ou Mercado Pago — troca barata via `PaymentProvider` |
-| Pipeline OCR+hash insuficiente p/ SC-006 (80%) ou SC-006a (2 s) | Spike comparativo no início da US5; `CardIdentifier` trocável permite escalar para embeddings/serviço pronto sem tocar o fluxo de sessões; scanner não bloqueia o resto (constituição III) |
-| Gravação degradar detecção (FR-063) | Comportamento já especificado: desativar gravação com aviso; spike valida cedo |
-| Latência de webhook do provedor de pagamento | Estados de pedido tolerantes a atraso + reconciliação periódica via job |
+| Custódia (retenção + liberação controlada) não suportada como assumido pelo split do Pagar.me                                 | Spike obrigatório em sandbox antes da US6 (research §4); alternativas: modo conta-da-plataforma + transferência via API, ou Mercado Pago — troca barata via `PaymentProvider`                                                                                                                                                                      |
+| Pipeline OCR+hash insuficiente p/ SC-006 (80%) ou SC-006a (2 s)                                                               | Spike comparativo no início da US5; `CardIdentifier` trocável permite escalar para embeddings/serviço pronto sem tocar o fluxo de sessões; scanner não bloqueia o resto (constituição III)                                                                                                                                                         |
+| Gravação degradar detecção (FR-063)                                                                                           | Comportamento já especificado: desativar gravação com aviso; spike valida cedo                                                                                                                                                                                                                                                                     |
+| Latência de webhook do provedor de pagamento                                                                                  | Estados de pedido tolerantes a atraso + reconciliação periódica via job                                                                                                                                                                                                                                                                            |
 
 **Sources**: [pokemontcg.io](https://pokemontcg.io/) (aviso "Now part of Scrydex"),
 [TCGdex — The Multilingual Pokemon TCG API](https://tcgdex.dev/) e

@@ -25,7 +25,7 @@
 - Q: O comprador pode cancelar um pedido pago antes do envio? → A: Sim — cancelamento livre pelo comprador enquanto o pedido está "pago" (não enviado), com reembolso total (itens + frete); após o envio, apenas via disputa.
 - Q: Em disputa "item diferente do anunciado" resolvida a favor do comprador, ele devolve a carta? → A: A critério do administrador — a decisão pode condicionar o reembolso à devolução (frete de devolução por conta do vendedor), registrado nas notas da resolução; sem fluxo automatizado de devolução no MVP.
 
-## User Scenarios & Testing *(mandatory)*
+## User Scenarios & Testing _(mandatory)_
 
 ### User Story 1 - Contas e perfis (Priority: P1)
 
@@ -135,7 +135,7 @@ O usuário inicia uma **sessão de escaneamento** que abre a câmera em modo con
 
 **Acceptance Scenarios**:
 
-*Sessão e detecção contínua*
+_Sessão e detecção contínua_
 
 1. **Given** um usuário na coleção, **When** ele inicia uma sessão de escaneamento, **Then** a câmera abre em modo contínuo e cartas detectadas no enquadramento recebem molduras em tempo real que acompanham sua posição.
 2. **Given** múltiplas cartas visíveis simultaneamente, **When** o app as detecta, **Then** cada carta recebe uma moldura individual.
@@ -143,19 +143,19 @@ O usuário inicia uma **sessão de escaneamento** que abre a câmera em modo con
 4. **Given** uma carta já capturada na sessão, **When** ela é reapresentada à câmera, **Then** o app a reconhece como duplicata e incrementa a quantidade daquela captura, com indicação visual, sem criar registro repetido.
 5. **Given** uma identificação ambígua, **When** o app não tem confiança suficiente, **Then** a carta entra na sessão marcada como "a revisar" com as opções mais prováveis salvas para escolha posterior, sem interromper o escaneamento.
 
-*Identificação automática de idioma*
+_Identificação automática de idioma_
 
 6. **Given** uma carta em português ou em inglês capturada, **When** o app determina o idioma com confiança, **Then** a captura entra na sessão com o idioma registrado automaticamente, sem o usuário informar, e a imagem exibida corresponde ao idioma da carta quando disponível.
 7. **Given** uma carta cujo idioma não pôde ser determinado com confiança, **When** ela é capturada, **Then** entra na sessão com inglês como idioma padrão, ajustável na tela de revisão.
 
-*Feedback por captura*
+_Feedback por captura_
 
 8. **Given** a captura de uma carta comum, **When** ela é registrada na sessão, **Then** um feedback visual (animação na moldura) e sonoro padrão é disparado.
 9. **Given** a captura de uma carta de raridade alta ou com valor de mercado acima do limiar configurado, **When** ela é registrada, **Then** o feedback é o especial (som e animação distintos, celebratórios).
 10. **Given** a captura de uma carta presente em wishlist do usuário, **When** ela é registrada, **Then** o feedback especial é disparado e o app indica qual wishlist e se o preço atual está no alvo.
 11. **Given** sons desativados nas configurações, **When** capturas ocorrem, **Then** nenhum som é emitido, o feedback visual permanece e o ritmo de detecção contínua não é afetado.
 
-*Revisão e confirmação*
+_Revisão e confirmação_
 
 12. **Given** o encerramento da sessão, **When** a tela de revisão abre, **Then** o usuário pode corrigir identificações, resolver as cartas "a revisar" escolhendo entre as opções, ajustar quantidade, condição e idioma de cada captura, excluir capturas erradas e adicionar manualmente cartas que a câmera não pegou.
 13. **Given** a tela de revisão, **When** o usuário consulta o resumo da sessão, **Then** vê: total de cartas, valor de mercado total estimado, distribuição por raridade e por edição, carta mais valiosa da sessão e quantas cartas estavam em wishlists.
@@ -163,12 +163,12 @@ O usuário inicia uma **sessão de escaneamento** que abre a câmera em modo con
 15. **Given** uma sessão em revisão, **When** o usuário escolhe descartá-la, **Then** a sessão inteira é descartada sem alterar a coleção, após confirmação.
 16. **Given** uma sessão interrompida (app fechado, ligação recebida), **When** o usuário reabre o app, **Then** ele pode retomar a sessão pendente do ponto em que parou ou descartá-la.
 
-*Escolha de câmera*
+_Escolha de câmera_
 
 17. **Given** uma sessão de escaneamento ativa, **When** o usuário toca o botão de alternância de câmera visível na interface, **Then** a detecção passa da câmera traseira (padrão) para a frontal (ou vice-versa), com molduras, capturas e feedbacks funcionando da mesma forma em ambas.
 18. **Given** um usuário que alternou a câmera em uma sessão, **When** ele inicia a próxima sessão, **Then** a câmera escolhida anteriormente é lembrada como preferência.
 
-*Gravação e compartilhamento da sessão*
+_Gravação e compartilhamento da sessão_
 
 19. **Given** o início de uma sessão, **When** o usuário ativa o toggle de gravação (visível e desligado por padrão), **Then** a sessão é gravada capturando o que ele vê na tela: o vídeo da câmera com as molduras de detecção, animações e contadores sobrepostos, incluindo o áudio dos feedbacks sonoros.
 20. **Given** um aparelho sem capacidade de gravar e detectar simultaneamente, **When** o usuário tenta ativar a gravação, **Then** o app informa a limitação e desativa a gravação, mantendo o escaneamento funcionando normalmente — a gravação nunca degrada perceptivelmente a detecção em tempo real.
@@ -176,7 +176,7 @@ O usuário inicia uma **sessão de escaneamento** que abre a câmera em modo con
 22. **Given** uma gravação finalizada, **When** o usuário opta pelo encerramento visual, **Then** o vídeo ganha como última cena um resumo da sessão (total de cartas, valor estimado, carta mais rara/valiosa), tornando-o autocontido para compartilhamento.
 23. **Given** qualquer sessão gravada, **When** o vídeo é criado, **Then** ele permanece apenas no dispositivo do usuário — nenhum vídeo é enviado aos servidores da plataforma.
 
-*Caminho alternativo*
+_Caminho alternativo_
 
 24. **Given** permissão de câmera negada ou indisponível, **When** o usuário tenta abrir o scanner, **Then** o app explica a necessidade da permissão e todos os demais fluxos (incluindo registro manual completo) permanecem funcionando.
 
@@ -339,7 +339,7 @@ Um administrador da plataforma (membro da equipe interna, com papel restrito) ac
 - Oscilação de preço em torno do alvo (sobe e desce repetidamente): a regra de rearme + intervalo mínimo impede rajadas de notificações pela mesma carta.
 - Perda de conectividade durante uso: estados de carregamento, erro e nova tentativa em todas as telas; ações financeiras nunca são duplicadas por reenvio (idempotência).
 
-## Requirements *(mandatory)*
+## Requirements _(mandatory)_
 
 ### Functional Requirements
 
@@ -488,7 +488,7 @@ Um administrador da plataforma (membro da equipe interna, com papel restrito) ac
 - **Avaliação**: nota e comentário de uma parte sobre a outra após conclusão do pedido (comprador → vendedor e vendedor → comprador, uma de cada por pedido); compõe a reputação de quem a recebe.
 - **Registro de Auditoria**: entrada imutável descrevendo cada movimentação financeira com autor, ação, valores, timestamps e estados anterior/posterior.
 
-## Success Criteria *(mandatory)*
+## Success Criteria _(mandatory)_
 
 ### Measurable Outcomes
 
