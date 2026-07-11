@@ -11,8 +11,9 @@
 App mobile (iOS/Android) para colecionadores de Pokémon TCG no Brasil: registro de coleção
 com catálogo e autocomplete, precificação automática em BRL com histórico por carta,
 dashboard de estatísticas, wishlists com preço-alvo e notificações, scanner de cartas por
-câmera com sessões/gravação, e marketplace com pagamento em custódia (Pix + cartão) e
-comissão via split. Abordagem técnica: app React Native/Expo, API REST em Node.js +
+câmera com sessões/gravação, e marketplace com carrinho multi-vendedor (um pedido por vendedor,
+pagamento único em custódia — Pix + cartão), comissão via split sobre os itens, envio com
+transportadora/rastreio, disputas operadas por back-office admin e avaliação mútua. Abordagem técnica: app React Native/Expo, API REST em Node.js +
 TypeScript, PostgreSQL; integrações externas (catálogo, preços, pagamentos, auth, push)
 isoladas em camadas de adapter com cache e fallback, conforme a constituição do projeto.
 
@@ -84,7 +85,9 @@ apps/
 │   └── tests/
 └── api/                         # Node.js + TypeScript (Fastify)
     ├── src/
-    │   ├── modules/             # por domínio: auth/, catalog/, collection/, pricing/,
+    │   ├── modules/             # por domínio: auth/, account/ (perfil, endereços,
+    │   │                        # visibilidade, onboarding de vendedor), catalog/,
+    │   │                        # collection/, pricing/,
     │   │                        # stats/, wishlist/, scanner/ (CardIdentifier: OCR-first
     │   │                        # + matching visual, trocável), marketplace/,
     │   │                        # notifications/, audit/, admin/ (back-office de disputas:

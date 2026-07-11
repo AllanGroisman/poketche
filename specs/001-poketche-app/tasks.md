@@ -259,7 +259,7 @@ transações, comissões — e contratos de adapters externos) e nos fluxos de i
 - [ ] T098 [P] Revisão de UX mobile-first: estados de loading/erro/retry em todas as telas, fluxos curtos (apps/mobile/src/)
 - [ ] T099 [P] Revisão LGPD: payloads públicos sem dados pessoais, endereço restrito às partes e oculto pós-conclusão, evidências nunca públicas (apps/api/src/modules/)
 - [ ] T100 Rate limiting nas rotas públicas 🔓 + headers de segurança (apps/api/src/lib/rate-limit.ts)
-- [ ] T101 Verificação de performance: EXPLAIN das buscas (<1s), eficácia do cache ETag, captura ≤2s (relatório em specs/001-poketche-app/perf-notes.md)
+- [ ] T101 Verificação de performance: EXPLAIN das buscas (<1s, SC-003/SC-021), eficácia do cache ETag, abertura de link público <5s (SC-012), captura ≤2s (SC-006a) (relatório em specs/001-poketche-app/perf-notes.md)
 - [ ] T102 [P] README do monorepo + docs de setup dev alinhadas ao quickstart (README.md)
 - [ ] T103 Executar a validação end-to-end completa do quickstart.md (todas as linhas da tabela por story + checks transversais) e corrigir o que falhar
 

@@ -104,6 +104,13 @@
   disputa a critério do administrador (FR-079 estendido). Propagado a data-model.md,
   contracts/rest-api.md, research.md (spike: cobrança única multi-recebedor + reembolso
   parcial) e quickstart.md. 16/16 itens seguem passando.
+- Análise cruzada (/speckit-analyze) em 2026-07-11: 0 CRITICAL, cobertura 100% dos FRs
+  pelas tasks. Remediações aplicadas: edge case de liberação alinhado ao FR-030
+  (pós-postagem), variante adicionada a FR-008/009/010 e à entidade Item da Coleção,
+  plural "itens do pedido" em FR-029/FR-075/cenário 8, critério mensurável para
+  "edições recentes/populares" (assumption), `received` documentado como transitório
+  no contrato, módulo account/ e carrinho refletidos no plan.md, SC-012 incluído na
+  T101. 16/16 itens seguem passando.
 - Review final item a item em 2026-07-10: 16/16 itens atendidos e marcados.
   Observações (não bloqueantes): menções a Google/Apple e Pix/cartão são
   restrições de negócio/compliance definidas em clarificação, não detalhes de

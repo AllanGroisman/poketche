@@ -199,7 +199,7 @@ Um vendedor com cadastro completo anuncia cartas da sua coleção definindo pre�
 5. **Given** um checkout confirmado, **When** o pagamento único é aprovado, **Then** o valor total fica retido pela plataforma, um pedido é criado por vendedor (cada um com seus itens, frete e endereço congelados), as unidades saem de circulação e cada vendedor passa a ver o endereço de entrega do seu pedido; a partir daí cada pedido segue fluxo independente de envio, recebimento, liberação e disputa.
 6. **Given** um pagamento recusado ou falho, **When** a transação não é aprovada, **Then** nenhum valor é retido, o anúncio permanece ativo e o comprador é informado do motivo com opção de tentar novamente.
 7. **Given** um pedido pago, **When** o vendedor confirma o envio informando a transportadora (Correios, Jadlog, Loggi ou outra) e o código de rastreio — ambos obrigatórios —, **Then** o pedido muda para "enviado" e o comprador vê a transportadora, o código e um link de rastreamento.
-8. **Given** um pedido enviado, **When** o comprador confirma o recebimento, **Then** o valor é liberado ao vendedor — item menos a comissão percentual, mais o frete integral — e ambos podem se avaliar.
+8. **Given** um pedido enviado, **When** o comprador confirma o recebimento, **Then** o valor é liberado ao vendedor — itens do pedido menos a comissão percentual, mais o frete integral — e ambos podem se avaliar.
 9. **Given** um pedido enviado sem confirmação do comprador e sem disputa aberta, **When** o prazo de liberação automática contado a partir da data de postagem expira, **Then** o valor é liberado automaticamente ao vendedor.
 10. **Given** um pedido com problema (não chegou dentro do prazo ou item diferente do anunciado), **When** o comprador abre uma disputa dentro do prazo de liberação, **Then** a liberação do valor é suspensa até a resolução, com espaço para ambas as partes apresentarem evidências.
 11. **Given** uma disputa resolvida a favor do comprador, **When** a decisão é registrada, **Then** o comprador é reembolsado integralmente (item + frete) e o vendedor não recebe o valor.
@@ -321,7 +321,7 @@ Um administrador da plataforma (membro da equipe interna, com papel restrito) ac
 - Pagamento único do carrinho falha ou expira: nenhum dos pedidos é efetivado e todas as unidades reservadas de todos os anúncios retornam à disponibilidade.
 - Frete de múltiplos anúncios do mesmo vendedor num pedido: cobrado um único frete por pedido (envio único), conforme a regra de combinação definida nas assumptions.
 - Pagamento aprovado mas falha subsequente do sistema: a transação nunca fica em estado inconsistente — ou avança com registro completo, ou é revertida com estorno e auditoria.
-- Comprador some após o envio: liberação automática ao vendedor após o prazo pós-entrega, desde que não haja disputa aberta.
+- Comprador some após o envio: liberação automática ao vendedor após o prazo contado a partir da data de postagem (FR-030), desde que não haja disputa aberta.
 - Vendedor não envia dentro do prazo: comprador pode cancelar com reembolso integral.
 - Código de rastreio inválido ou sem movimentação: pedido sinalizado para acompanhamento e elegível a disputa.
 - Endereço salvo é editado ou removido do perfil após uma compra: pedidos existentes mantêm o endereço congelado no momento da compra, inalterado.
@@ -358,9 +358,9 @@ Um administrador da plataforma (membro da equipe interna, com papel restrito) ac
 
 - **FR-006**: System MUST oferecer um catálogo de cartas de Pokémon TCG pesquisável com autocomplete por nome, retornando edição/coleção, número da carta e imagem oficial.
 - **FR-007**: System MUST suportar cartas nas versões em português e em inglês.
-- **FR-008**: Users MUST be able to adicionar itens à coleção informando carta do catálogo, condição (escala: Mint, Near Mint, Excellent, Good, Played, Damaged), quantidade, idioma e, opcionalmente, o preço de aquisição em BRL (maior que zero quando informado).
-- **FR-009**: System MUST tratar cada combinação de carta + condição + idioma como item distinto da coleção, com quantidade própria.
-- **FR-010**: Users MUST be able to visualizar, editar (condição, quantidade, idioma, preço de aquisição) e remover itens da coleção.
+- **FR-008**: Users MUST be able to adicionar itens à coleção informando carta do catálogo, condição (escala: Mint, Near Mint, Excellent, Good, Played, Damaged), quantidade, idioma, variante (normal, reverse foil, holo — padrão: normal) e, opcionalmente, o preço de aquisição em BRL (maior que zero quando informado).
+- **FR-009**: System MUST tratar cada combinação de carta + condição + idioma + variante como item distinto da coleção, com quantidade própria.
+- **FR-010**: Users MUST be able to visualizar, editar (condição, quantidade, idioma, variante, preço de aquisição) e remover itens da coleção.
 - **FR-011**: System MUST exibir a imagem oficial da carta em todos os contextos de exibição do item, correspondente ao idioma do item quando disponível (carta em português exibe a arte em português), com fallback para a imagem em inglês.
 
 **Precificação**
@@ -438,7 +438,7 @@ Um administrador da plataforma (membro da equipe interna, com papel restrito) ac
 - **FR-026a**: System MUST exigir conta para comprar, vender, manter coleção (criar/adicionar cartas) ou manter wishlists — inclusive quando a ação parte do explorador de catálogo; quando um visitante não autenticado tentar uma dessas ações, o app MUST conduzi-lo ao cadastro/login e retorná-lo ao ponto de origem após a autenticação.
 - **FR-027**: System MUST processar o pagamento dentro da plataforma, aceitando Pix e cartão de crédito, e reter o valor em custódia até a conclusão do fluxo.
 - **FR-028**: System MUST reter uma comissão percentual da plataforma sobre cada venda concluída, deduzida no momento da liberação ao vendedor; a comissão incide apenas sobre o valor do item — o frete é repassado integralmente ao vendedor.
-- **FR-029**: System MUST conduzir o pedido pelo fluxo: pago → envio confirmado pelo vendedor com transportadora e código de rastreio → recebimento confirmado pelo comprador → valor liberado ao vendedor (item menos comissão, mais frete).
+- **FR-029**: System MUST conduzir o pedido pelo fluxo: pago → envio confirmado pelo vendedor com transportadora e código de rastreio → recebimento confirmado pelo comprador → valor liberado ao vendedor (itens do pedido menos comissão, mais frete).
 - **FR-030**: System MUST liberar automaticamente o valor ao vendedor quando o comprador não confirmar o recebimento dentro do prazo definido contado a partir da data de postagem, desde que não haja disputa aberta; dentro desse prazo o comprador MUST poder abrir disputa por não recebimento.
 - **FR-031**: System MUST permitir ao comprador cancelar o pedido com reembolso integral (itens + frete) a qualquer momento enquanto o pedido estiver pago e não enviado — incluindo quando o vendedor não confirmar o envio dentro do prazo definido; após o envio, o cancelamento só ocorre via disputa.
 - **FR-032**: System MUST oferecer mecanismo de disputa (item não recebido ou diferente do anunciado) que suspende a liberação do valor até a resolução, com registro de evidências de ambas as partes e desfechos de reembolso ao comprador ou liberação ao vendedor.
@@ -452,7 +452,7 @@ Um administrador da plataforma (membro da equipe interna, com papel restrito) ac
 
 - **FR-073**: System MUST coletar o endereço de entrega do comprador no checkout, com opção de salvar endereços no perfil para reuso em compras futuras.
 - **FR-074**: System MUST congelar o endereço de entrega no pedido no momento da compra (edições ou remoções posteriores de endereços do perfil não o afetam); o endereço MUST ser visível apenas ao comprador e ao vendedor daquele pedido enquanto ele estiver em andamento — nunca a outros usuários ou visitantes (LGPD).
-- **FR-075**: System MUST exibir o total do pedido — valor do item + frete — antes da confirmação da compra; o valor cobrado MUST corresponder exatamente ao total exibido.
+- **FR-075**: System MUST exibir o total da compra — itens + frete de cada pedido gerado — antes da confirmação; o valor cobrado MUST corresponder exatamente ao total exibido.
 - **FR-076**: System MUST exigir, na confirmação de envio, a transportadora (Correios, Jadlog, Loggi ou outra, com nome informado) e o código de rastreio — ambos obrigatórios; o comprador MUST ver transportadora, código e link de rastreamento no pedido.
 - **FR-077**: System MUST devolver ao comprador o valor total pago (item + frete) em qualquer reembolso — cancelamento ou disputa resolvida a seu favor.
 
@@ -471,7 +471,7 @@ Um administrador da plataforma (membro da equipe interna, com papel restrito) ac
 - **Perfil de Vendedor**: extensão do usuário habilitada para vender; a verificação de identidade e dados bancários é feita pelo provedor de pagamentos, e a plataforma guarda apenas o status (pendente, aprovada, recusada); pré-requisito para anunciar.
 - **Carta (Catálogo)**: carta oficial de Pokémon TCG com nome, edição/coleção, número, raridade, tipo, idioma disponível (PT/EN) e imagem oficial; origem em fonte externa de catálogo.
 - **Edição/Coleção (Set)**: agrupamento oficial de cartas com total conhecido, logo e data de lançamento; usado para completude (FR-020/FR-072) e navegação do explorador de catálogo (FR-068).
-- **Item da Coleção**: vínculo entre usuário e carta do catálogo com condição, idioma, quantidade, data de adição e preço de aquisição opcional; unidade básica do inventário.
+- **Item da Coleção**: vínculo entre usuário e carta do catálogo com condição, idioma, variante (normal, reverse foil, holo), quantidade, data de adição e preço de aquisição opcional; unidade básica do inventário.
 - **Cotação de Preço**: preço de mercado em BRL de uma carta (considerando condição/idioma quando disponível), com data/hora da atualização e origem; mantém última versão conhecida como fallback.
 - **Snapshot de Preço da Carta**: registro histórico periódico do preço de uma carta (por condição/idioma quando disponível), gerado a cada ciclo de atualização de cotações; base dos gráficos de histórico, variações percentuais, maior/menor preço, indicadores de tendência e rankings de valorização.
 - **Snapshot de Valor da Coleção**: registro periódico do valor total da coleção de um usuário, base da evolução temporal.
@@ -543,6 +543,7 @@ Um administrador da plataforma (membro da equipe interna, com papel restrito) ac
 - Anúncios com múltiplas unidades admitem compra parcial: o pedido tem quantidade própria; as unidades são reservadas na criação do pedido e devolvidas ao anúncio se o pagamento falhar ou expirar dentro da janela de pagamento do provedor.
 - O pedido guarda um retrato dos dados da carta e do preço no momento da compra: edições ou remoções posteriores do anúncio ou da coleção do vendedor não afetam pedidos em andamento.
 - O preço-alvo da wishlist é avaliado contra o menor preço vigente entre as variantes da carta (a wishlist é da carta, não de uma variante); a notificação e a tela indicam qual variante atingiu o alvo.
+- "Edições recentes/populares" (priorização de cotações e imagens): recentes = lançadas nos últimos 12 meses; populares = as N edições com mais itens em coleções, wishlists e anúncios da plataforma (N configurável pela operação; padrão sugerido: 20).
 - Snapshots de preço por carta são gerados a cada ciclo de atualização de cotações (pelo menos diário) e retidos integralmente nesta fase; políticas de agregação/expurgo de histórico antigo ficam para fases futuras.
 - "Valorização/desvalorização recente" para o indicador de tendência é definida como variação nos últimos 7 dias acima de um limiar configurável pela operação (padrão sugerido: ±5%).
 - "Histórico suficiente" para exibir gráfico exige pelo menos 2 snapshots em datas distintas; variações por período exigem snapshot no início aproximado do período.
