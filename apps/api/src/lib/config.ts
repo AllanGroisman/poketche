@@ -11,6 +11,9 @@ const schema = z.object({
 
   DATABASE_URL: z.string().url(),
 
+  // Base do link público compartilhável (deep link do app / web). Ex.: poketche://public/
+  SHARE_LINK_BASE_URL: z.string().default('poketche://public/'),
+
   // Auth (Supabase) — opcionais em dev local, exigidos em produção.
   SUPABASE_JWKS_URL: z.string().url().optional(),
   SUPABASE_JWT_ISSUER: z.string().optional(),

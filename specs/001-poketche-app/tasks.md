@@ -32,6 +32,14 @@ transações, comissões — e contratos de adapters externos) e nos fluxos de i
 > de dinheiro/integração**: spikes T034 (parecer legal), T066 (scanner) e T076 (custódia
 > Pagar.me). O role de banco não-dono para o append-only do `financial_audit_log` (Princípio
 > IV) é pré-requisito da US6.
+>
+> **US1 — Contas (2026-07-13, checkpoint)**: T022–T027 completas e validadas — perfil (`/me`),
+> visibilidade granular + link público compartilhável (gerar/revogar, token opaco) com
+> resolvedor público mínimo (404 opaco na revogação, SC-012), onboarding de vendedor via stub
+> do `PaymentProvider`, e telas mobile (login/cadastro por e-mail, gate de sessão, tela de
+> visibilidade). **46 testes passando** (inclui 10 de integração da US1 sobre banco de teste
+> efêmero em :5435). T021 parcial: só e-mail/senha (login social/Apple pendente). US2 não
+> iniciada.
 
 ## Phase 1: Setup (Shared Infrastructure)
 
@@ -77,13 +85,13 @@ transações, comissões — e contratos de adapters externos) e nos fluxos de i
 
 **Independent Test**: criar conta, logar/deslogar, alternar visibilidade (coleção mesmo vazia), gerar/revogar link, preencher cadastro de vendedor (status)
 
-- [ ] T021 [US1] Configurar Supabase Auth: e-mail/senha + Google + Sign in with Apple, incluindo vinculação de conta social a e-mail existente (config Supabase + apps/api/docs/auth-setup.md)
-- [ ] T022 [P] [US1] Endpoints GET/PATCH `/me` (perfil + preferências) (apps/api/src/modules/account/routes.ts)
-- [ ] T023 [P] [US1] Endpoints GET/PUT `/me/visibility` + POST `/me/visibility/share-link` (gerar/revogar share_token não adivinhável) (apps/api/src/modules/account/visibility.ts)
-- [ ] T024 [US1] Onboarding de vendedor: POST/GET `/me/seller` chamando `PaymentProvider.createRecipient` (interface + stub; adapter real na US6) e guardando apenas kyc_status (apps/api/src/modules/account/seller.ts, src/integrations/payments/provider.ts)
-- [ ] T025 [US1] Mobile: telas de cadastro/login/social e logout (apps/mobile/app/(auth)/, src/features/account/)
-- [ ] T026 [US1] Mobile: tela de perfil com visibilidade granular (cartas/valores/quantidades) e compartilhar link (apps/mobile/app/settings/visibility.tsx)
-- [ ] T027 [US1] Teste de integração: fluxo conta → visibilidade → share-link → revogação (apps/api/tests/integration/account.test.ts)
+- [ ] T021 [US1] Configurar Supabase Auth: e-mail/senha + Google + Sign in with Apple, incluindo vinculação de conta social a e-mail existente (config Supabase + apps/api/docs/auth-setup.md) — **parcial**: e-mail/senha e verificação JWT (JWKS) prontos e testados; Google configurado no painel; **botões de login social no app, Apple e vinculação de conta pendentes** (fora do escopo desta rodada — só e-mail)
+- [x] T022 [P] [US1] Endpoints GET/PATCH `/me` (perfil + preferências) (apps/api/src/modules/account/routes.ts)
+- [x] T023 [P] [US1] Endpoints GET/PUT `/me/visibility` + POST `/me/visibility/share-link` (gerar/revogar share_token não adivinhável) + resolvedor público mínimo `/public/collections/:shareToken` (semente da US7) (apps/api/src/modules/account/visibility.ts)
+- [x] T024 [US1] Onboarding de vendedor: POST/GET `/me/seller` chamando `PaymentProvider.createRecipient` (interface + stub; adapter real na US6) e guardando apenas kyc_status (apps/api/src/modules/account/seller.ts, src/integrations/payments/provider.ts)
+- [x] T025 [US1] Mobile: telas de cadastro/login e logout, com gate de navegação por sessão (apps/mobile/app/(auth)/, src/features/account/) — login social (Google/Apple) pendente com a T021
+- [x] T026 [US1] Mobile: tela de perfil com visibilidade granular (cartas/valores/quantidades) e compartilhar link (apps/mobile/app/settings/visibility.tsx)
+- [x] T027 [US1] Teste de integração: fluxo conta → visibilidade → share-link → revogação (apps/api/tests/integration/account.test.ts)
 
 **Checkpoint**: US1 funcional e testável isoladamente
 

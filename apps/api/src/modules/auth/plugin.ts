@@ -10,6 +10,7 @@ import { forbidden, unauthorized } from '../../lib/errors.js';
 export interface AuthUser {
   id: string;
   role: 'user' | 'admin';
+  email?: string;
 }
 
 declare module 'fastify' {
@@ -25,15 +26,24 @@ function extractRole(payload: Record<string, unknown>): 'user' | 'admin' {
   return role === 'admin' ? 'admin' : 'user';
 }
 
-export async function registerAuth(app: FastifyInstance, config: AppConfig): Promise<void> {
-  if (!config.SUPABASE_JWKS_URL) {
+/** Verificador de token injetável — usado só em testes de integração (sem Supabase). */
+export type AuthVerifier = (req: FastifyRequest) => Promise<AuthUser> | AuthUser;
+
+export async function registerAuth(
+  app: FastifyInstance,
+  config: AppConfig,
+  override?: AuthVerifier,
+): Promise<void> {
+  if (!override && !config.SUPABASE_JWKS_URL) {
     app.log.warn('SUPABASE_JWKS_URL ausente — autenticação desativada (apenas dev local).');
   }
-  const jwks = config.SUPABASE_JWKS_URL
-    ? createRemoteJWKSet(new URL(config.SUPABASE_JWKS_URL))
-    : null;
+  const jwks =
+    !override && config.SUPABASE_JWKS_URL
+      ? createRemoteJWKSet(new URL(config.SUPABASE_JWKS_URL))
+      : null;
 
   async function authenticate(req: FastifyRequest): Promise<AuthUser> {
+    if (override) return override(req);
     const header = req.headers.authorization;
     if (!header?.startsWith('Bearer ')) {
       throw unauthorized('token ausente');
@@ -45,7 +55,11 @@ export async function registerAuth(app: FastifyInstance, config: AppConfig): Pro
       const { payload } = await jwtVerify(header.slice(7), jwks, {
         issuer: config.SUPABASE_JWT_ISSUER,
       });
-      return { id: payload.sub as string, role: extractRole(payload) };
+      return {
+        id: payload.sub as string,
+        role: extractRole(payload),
+        email: typeof payload.email === 'string' ? payload.email : undefined,
+      };
     } catch {
       throw unauthorized('token inválido');
     }

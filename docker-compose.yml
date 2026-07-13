@@ -27,7 +27,8 @@ services:
       POSTGRES_PASSWORD: poketche
       POSTGRES_DB: poketche_test
     ports:
-      - '5433:5432'
+      # 5433 também costuma estar ocupada; usamos 5435 no host p/ o banco de teste.
+      - '5435:5432'
     tmpfs:
       - /var/lib/postgresql/data
     healthcheck:
