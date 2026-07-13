@@ -17,6 +17,9 @@ export default function Home() {
             <Text style={[styles.hello, { color: c.muted }]}>Olá,</Text>
             <Text style={[styles.name, { color: c.text }]}>{profile.display_name}</Text>
 
+            <Link href="/collection" style={[styles.link, { color: c.primary }]}>
+              Minha coleção →
+            </Link>
             <Link href="/settings/visibility" style={[styles.link, { color: c.primary }]}>
               Visibilidade e link público →
             </Link>

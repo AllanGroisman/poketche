@@ -4,6 +4,8 @@ import type { AppConfig } from './lib/config.js';
 import { registerErrorHandler } from './lib/errors.js';
 import { registerAuth, type AuthVerifier } from './modules/auth/plugin.js';
 import { registerCatalogImages } from './modules/catalog/images.js';
+import { registerCatalogSearch } from './modules/catalog/search.js';
+import { registerCollection } from './modules/collection/routes.js';
 import { registerAccount } from './modules/account/index.js';
 import { createImageStore } from './integrations/storage/r2.js';
 import { StubPaymentProvider } from './integrations/payments/provider.js';
@@ -40,6 +42,8 @@ export async function buildApp(
   await app.register(
     async (scope) => {
       await registerCatalogImages(scope, { prisma, store: imageStore });
+      registerCatalogSearch(scope, prisma);
+      registerCollection(scope, prisma);
       registerAccount(scope, {
         prisma,
         payments,

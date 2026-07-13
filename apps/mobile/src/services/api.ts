@@ -72,6 +72,11 @@ export async function apiRequest<T>(path: string, options: RequestOptions = {}):
   return payload as T;
 }
 
+/** Monta a URL absoluta de uma imagem servida pelo proxy do catálogo (caminho relativo à API). */
+export function imageUrl(path: string): string {
+  return `${BASE_URL}${path.startsWith('/') ? path : `/${path}`}`;
+}
+
 // ---- Health (fora do prefixo) ----
 
 export interface HealthResponse {

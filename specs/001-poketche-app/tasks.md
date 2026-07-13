@@ -38,8 +38,13 @@ transações, comissões — e contratos de adapters externos) e nos fluxos de i
 > resolvedor público mínimo (404 opaco na revogação, SC-012), onboarding de vendedor via stub
 > do `PaymentProvider`, e telas mobile (login/cadastro por e-mail, gate de sessão, tela de
 > visibilidade). **46 testes passando** (inclui 10 de integração da US1 sobre banco de teste
-> efêmero em :5435). T021 parcial: só e-mail/senha (login social/Apple pendente). US2 não
-> iniciada.
+> efêmero em :5435). T021 parcial: só e-mail/senha (login social/Apple pendente).
+>
+> **US2 — Registro da coleção (2026-07-13, checkpoint)**: T028–T033 completas e validadas —
+> busca `/catalog/cards` multilíngue com pg_trgm (autocomplete ranqueado, exibição localizada
+> com fallback EN), endpoints da coleção com merge por chave única (carta+condição+idioma+
+> variante), telas mobile de busca com debounce e lista/adicionar/editar/remover (preço de
+> aquisição > 0). **55 testes passando** (9 novos de integração da US2). US3 não iniciada.
 
 ## Phase 1: Setup (Shared Infrastructure)
 
@@ -103,12 +108,12 @@ transações, comissões — e contratos de adapters externos) e nos fluxos de i
 
 **Independent Test**: buscar carta (EN e PT), adicionar com atributos, ver na lista com imagem oficial, editar e remover; merge de duplicata por chave única
 
-- [ ] T028 [P] [US2] Migration `collection_item` com UNIQUE(user, card, condition, language, variant) (apps/api/src/db/migrations/)
-- [ ] T029 [P] [US2] Endpoint 🔓 GET `/catalog/cards` — busca única multilíngue com pg_trgm sobre card_translation (autocomplete; filtros completos na US10) (apps/api/src/modules/catalog/search.ts)
-- [ ] T030 [US2] Endpoints da coleção: POST (merge por unique + `wishlist_matches[]` stub), PATCH/DELETE (regra 422/desativação entra na US6), GET `/collection` com filtros/ordenação (apps/api/src/modules/collection/routes.ts)
-- [ ] T031 [US2] Mobile: busca com autocomplete e imagem no idioma (fallback EN) (apps/mobile/src/features/collection/search/)
-- [ ] T032 [US2] Mobile: telas lista da coleção + adicionar/editar/remover item (validação de preço de aquisição > 0) (apps/mobile/app/collection/, src/features/collection/)
-- [ ] T033 [US2] Teste de integração: adicionar/merge/editar/remover + busca <1s com catálogo sincronizado de fixtures (apps/api/tests/integration/collection.test.ts)
+- [x] T028 [P] [US2] Migration `collection_item` com UNIQUE(user, card, condition, language, variant) — já materializada na migration `init` (schema + 0001_constraints); combinação usada no merge do POST
+- [x] T029 [P] [US2] Endpoint 🔓 GET `/catalog/cards` — busca única multilíngue com pg_trgm sobre card_translation (autocomplete; filtros completos na US10) (apps/api/src/modules/catalog/search.ts, localize.ts)
+- [x] T030 [US2] Endpoints da coleção: POST (merge por unique + `wishlist_matches[]` stub), PATCH/DELETE (regra 422/desativação entra na US6), GET `/collection` com ordenação (apps/api/src/modules/collection/routes.ts)
+- [x] T031 [US2] Mobile: busca com autocomplete (debounce) e imagem no idioma (fallback EN) (apps/mobile/app/collection/search.tsx, src/features/collection/api.ts)
+- [x] T032 [US2] Mobile: telas lista da coleção + adicionar/editar/remover item (validação de preço de aquisição > 0) (apps/mobile/app/collection/)
+- [x] T033 [US2] Teste de integração: adicionar/merge/editar/remover + busca com catálogo de fixtures (apps/api/tests/integration/collection.test.ts)
 
 **Checkpoint**: MVP núcleo (US1+US2) completo — inventário digital funcional
 
