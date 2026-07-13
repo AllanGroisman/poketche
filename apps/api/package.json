@@ -10,6 +10,7 @@
     "dev": "tsx watch src/index.ts",
     "build": "tsc -p tsconfig.json",
     "start": "node dist/index.js",
+    "jobs:run": "tsx src/jobs/run.ts",
     "test": "vitest run",
     "test:watch": "vitest",
     "typecheck": "tsc --noEmit",
@@ -19,6 +20,7 @@
     "prisma:format": "prisma format"
   },
   "dependencies": {
+    "@aws-sdk/client-s3": "^3.700.0",
     "@prisma/client": "^6.1.0",
     "fastify": "^5.1.0",
     "jose": "^5.9.6",

@@ -2,14 +2,15 @@
 # O banco efêmero de teste roda na porta 5433 e é recriado a cada subida.
 services:
   db:
-    image: postgres:16
+    image: pgvector/pgvector:pg16
     container_name: poketche-db
     environment:
       POSTGRES_USER: poketche
       POSTGRES_PASSWORD: poketche
       POSTGRES_DB: poketche
     ports:
-      - '5432:5432'
+      # 5432 costuma estar ocupada por outro Postgres local; usamos 5434 no host.
+      - '5434:5432'
     volumes:
       - poketche-db-data:/var/lib/postgresql/data
     healthcheck:
@@ -19,7 +20,7 @@ services:
       retries: 5
 
   db-test:
-    image: postgres:16
+    image: pgvector/pgvector:pg16
     container_name: poketche-db-test
     environment:
       POSTGRES_USER: poketche

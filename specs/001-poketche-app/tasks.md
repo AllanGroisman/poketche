@@ -18,13 +18,20 @@ transações, comissões — e contratos de adapters externos) e nos fluxos de i
 
 ---
 
-> **Status de implementação (2026-07-11, /speckit-implement)**: Fase 1 (Setup) e o núcleo
-> da Fase 2 (Foundational T009–T015) implementados e **validados** — `prisma validate` OK,
-> `tsc --noEmit` OK, `eslint` OK e **20 testes passando** (money 14, idempotency 3, audit 3).
-> Restam da Fase 2 as tarefas gatilhadas por credenciais/serviços externos (T016–T020:
-> catálogo, proxy de imagens R2, cliente mobile completo) e todas as user stories (Fases 3+).
-> Pendências operacionais antes das fases de dinheiro/integração: `prisma migrate` (requer
-> Postgres de pé), credenciais Supabase/R2/pokemontcg.io, e os spikes T034/T066/T076.
+> **Status de implementação (2026-07-12, /speckit-implement)**: **Fase 1 (Setup) e Fase 2
+> (Foundational T009–T020) completas e validadas.** Banco migrado (Postgres 16 + pgvector em
+> :5434) com as constraints manuais aplicadas; catálogo sincronizado de verdade via
+> `catalog-sync` (base1: 102 EN; sv1: 258 EN + 159 PT). Validação: `tsc --noEmit` OK (API e
+> mobile), `eslint` OK, `prettier` OK e **36 testes passando** (money 14, idempotency 3,
+> audit 3, contrato de catálogo 16). Proxy de imagens testado com fallback resiliente à fonte
+> (constituição V) quando o R2 está indisponível.
+>
+> **Pendências antes das user stories**: criar os buckets R2 (`poketche-images`,
+> `poketche-disputes`) para o cache de imagens funcionar de fato; rodar o `catalog-sync`
+> completo (todas as edições); instalar deps mobile e validar em aparelho. **Gates das fases
+> de dinheiro/integração**: spikes T034 (parecer legal), T066 (scanner) e T076 (custódia
+> Pagar.me). O role de banco não-dono para o append-only do `financial_audit_log` (Princípio
+> IV) é pré-requisito da US6.
 
 ## Phase 1: Setup (Shared Infrastructure)
 
@@ -54,11 +61,11 @@ transações, comissões — e contratos de adapters externos) e nos fluxos de i
 - [x] T013 [P] Middleware de idempotência por header `Idempotency-Key` para rotas 💰 (apps/api/src/lib/idempotency.ts)
 - [x] T014 [P] Audit writer + migration de `financial_audit_log` append-only com REVOKE de UPDATE/DELETE (apps/api/src/lib/audit.ts, migration)
 - [x] T015 Runner pg_boss e registro de jobs no mesmo processo da API (apps/api/src/jobs/index.ts)
-- [ ] T016 `CatalogProvider` adapter isolado: pokemontcg.io (EN, canônico) + TCGdex (PT, casado por set/número) com testes de contrato por fixtures (apps/api/src/integrations/catalog/, tests/contract/catalog.test.ts)
-- [ ] T017 Job `catalog-sync` diário: sincroniza catálogo multilíngue completo para o Postgres (apps/api/src/jobs/catalog-sync.ts)
-- [ ] T018 Proxy de imagens com cache em Cloudflare R2 + job `image-backfill` priorizado (edições recentes/populares → coleções/wishlists/anúncios → restante; thumbnails antes) (apps/api/src/integrations/storage/r2.ts, src/modules/catalog/images.ts, src/jobs/image-backfill.ts)
-- [ ] T019 Mobile: cliente da API REST tipado + sessão de auth Supabase (apps/mobile/src/services/api.ts, src/services/auth.ts)
-- [ ] T020 Mobile: componentes base com estados de loading/erro/retry e helpers de formatação BRL/datas (apps/mobile/src/components/, src/lib/format.ts)
+- [x] T016 `CatalogProvider` adapter isolado: pokemontcg.io (EN, canônico) + TCGdex (PT, casado por set/número — resolvedor exact→normId→contagem) com testes de contrato por fixtures (apps/api/src/integrations/catalog/, tests/contract/catalog.test.ts)
+- [x] T017 Job `catalog-sync` diário: sincroniza catálogo multilíngue completo para o Postgres (apps/api/src/jobs/catalog-sync.ts, src/jobs/run.ts)
+- [x] T018 Proxy de imagens com cache em Cloudflare R2 + job `image-backfill` priorizado (edições recentes/populares → coleções/wishlists/anúncios → restante; thumbnails antes) (apps/api/src/integrations/storage/r2.ts, src/modules/catalog/images.ts, src/jobs/image-backfill.ts)
+- [x] T019 Mobile: cliente da API REST tipado + sessão de auth Supabase (apps/mobile/src/services/api.ts, src/services/auth.ts)
+- [x] T020 Mobile: componentes base com estados de loading/erro/retry e helpers de formatação BRL/datas (apps/mobile/src/components/, src/lib/format.ts)
 
 **Checkpoint**: fundação pronta — stories podem começar (em paralelo, se houver equipe)
 

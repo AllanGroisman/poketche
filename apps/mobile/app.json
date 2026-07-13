@@ -16,7 +16,9 @@
     },
     "plugins": ["expo-router", "expo-camera", "expo-notifications"],
     "extra": {
-      "apiBaseUrl": "http://localhost:3000/api/v1"
+      "apiBaseUrl": "http://localhost:3000/api/v1",
+      "supabaseUrl": "https://wdzdsujbhqwnxphlxvwe.supabase.co",
+      "supabasePublishableKey": "sb_publishable_3Vl98hNaNcRUn0AdBN6PQg_K5t7pNWX"
     }
   }
 }
