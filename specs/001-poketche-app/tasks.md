@@ -44,7 +44,19 @@ transações, comissões — e contratos de adapters externos) e nos fluxos de i
 > busca `/catalog/cards` multilíngue com pg_trgm (autocomplete ranqueado, exibição localizada
 > com fallback EN), endpoints da coleção com merge por chave única (carta+condição+idioma+
 > variante), telas mobile de busca com debounce e lista/adicionar/editar/remover (preço de
-> aquisição > 0). **55 testes passando** (9 novos de integração da US2). US3 não iniciada.
+> aquisição > 0). **55 testes passando** (9 novos de integração da US2).
+>
+> **US3 — Precificação automática (2026-07-14, checkpoint)**: T035–T041 completas e validadas
+> — `PriceProvider` isolado com fonte internacional USD (pokemontcg.io/TCGplayer) + PTAX/BACEN
+> e resolver com fallback por carta; `LigaPriceCollector` pronto mas **DESLIGADO** por flag
+> (`PRICING_LIGA_ENABLED=false`) aguardando o parecer T034; jobs `price-refresh` (dois níveis)
+> e `price-snapshot` (append-only) no pg_boss e no CLI; preço+fonte+data no `GET /collection`
+> com total e itens sem cotação indicados; telas mobile com `PriceTag` e valor total. Corrigido
+> um bug do `0001_constraints.sql` (usava DROP CONSTRAINT num índice único → dois índices
+> colidiam no `ON CONFLICT`); agora só o `NULLS NOT DISTINCT` permanece. **87 testes passando**
+> (20 unit de pricing, 8 de contrato da Liga, 4 de integração de fallback). **T034 permanece
+> pendência externa** (parecer legal) — a ativação da coleta Liga não foi implementada. US8
+> não iniciada.
 
 ## Phase 1: Setup (Shared Infrastructure)
 
@@ -125,14 +137,14 @@ transações, comissões — e contratos de adapters externos) e nos fluxos de i
 
 **Independent Test**: cartas exibem preço BRL + fonte + data; com a fonte primária fora, o app segue operante com últimas cotações
 
-- [ ] T034 [US3] 🚧 SPIKE (gate da coleta Liga): obter parecer legal sobre coleta da Liga Pokémon + redistribuição de imagens (pokemontcg.io/TCGdex); registrar resultado em specs/001-poketche-app/research.md §2/§8 — a coleta Liga permanece atrás de flag desligada até aprovação
-- [ ] T035 [P] [US3] Migrations `card_price` (UNIQUE (card_id, condition, variant, source) NULLS NOT DISTINCT) + `card_price_snapshot` (apps/api/src/db/migrations/)
-- [ ] T036 [US3] Interface `PriceProvider` + fonte internacional por carta (USD) + cliente PTAX/BACEN para conversão diária (apps/api/src/integrations/pricing/provider.ts, international.ts, ptax.ts)
-- [ ] T037 [US3] `LigaPriceCollector` isolado atrás de flag: parser com fixtures, checks de sanidade, fallback automático — testes de contrato (apps/api/src/integrations/pricing/liga/, tests/contract/liga.test.ts)
-- [ ] T038 [US3] Job `price-refresh` em dois níveis (diário prioritário: coleções/wishlists/anúncios + edições recentes; semanal rotativo p/ a cauda) + job `price-snapshot` após cada ciclo (apps/api/src/jobs/price-refresh.ts, price-snapshot.ts)
-- [ ] T039 [US3] Testes de unidade obrigatórios (constituição I): upsert de cotação, conversão PTAX, seleção de fonte/fallback, sanidade (apps/api/tests/unit/pricing.test.ts)
-- [ ] T040 [US3] Preço + fonte + data na coleção e no item; itens sem preço excluídos do total com indicação (API em `/collection`; apps/mobile/src/features/pricing/)
-- [ ] T041 [US3] Teste de integração: primária fora por flag → ciclo completa via fallback e última cotação preservada (apps/api/tests/integration/pricing-fallback.test.ts)
+- [ ] T034 [US3] 🚧 SPIKE (gate da coleta Liga): obter parecer legal sobre coleta da Liga Pokémon + redistribuição de imagens (pokemontcg.io/TCGdex); registrar resultado em specs/001-poketche-app/research.md §2/§8 — a coleta Liga permanece atrás de flag desligada até aprovação · **PENDÊNCIA EXTERNA (não implementada)** — a ativação da coleta Liga aguarda este parecer
+- [x] T035 [P] [US3] Migrations `card_price` (UNIQUE (card_id, condition, variant, source) NULLS NOT DISTINCT) + `card_price_snapshot` — já materializadas na migration `init`; corrigido o `0001_constraints.sql` (DROP INDEX, não DROP CONSTRAINT) para não deixar dois índices únicos colidindo no upsert
+- [x] T036 [US3] Interface `PriceProvider` + fonte internacional por carta (USD via pokemontcg.io/TCGplayer) + cliente PTAX/BACEN (walk-back + cache diário) + resolver com fallback por carta (apps/api/src/integrations/pricing/{types,international,ptax,resolver,sanity}.ts)
+- [x] T037 [US3] `LigaPriceCollector` isolado atrás de flag `PRICING_LIGA_ENABLED` (DESLIGADA): parser com fixtures, seletores centralizados, `LigaParseError` → fallback; testes de contrato (apps/api/src/integrations/pricing/liga/collector.ts, tests/contract/liga.test.ts)
+- [x] T038 [US3] Job `price-refresh` em dois níveis (hot diário: coleções/wishlists/edições recentes; tail fatiado em 7 por dia) com upsert idempotente gated por sanidade + job `price-snapshot` append-only; registrados no pg_boss e no CLI (apps/api/src/jobs/price-refresh.ts, price-snapshot.ts)
+- [x] T039 [US3] Testes de unidade obrigatórios (constituição I): sanidade, conversão PTAX/USD→BRL, seleção de fonte/fallback, seleção da cotação vigente por item (apps/api/tests/unit/pricing.test.ts — 20 casos)
+- [x] T040 [US3] Preço + fonte + data na coleção (`GET /collection`: preço vigente, valor da posição, `summary` com total e itens sem preço excluídos com indicação) + telas mobile (src/features/pricing/PriceTag, total na lista)
+- [x] T041 [US3] Teste de integração: primária fora por flag/indisponível → ciclo completa via fallback e última cotação preservada na sanidade + snapshot append-only (apps/api/tests/integration/pricing-fallback.test.ts)
 
 **Checkpoint**: coleção precificada com resiliência de fontes
 

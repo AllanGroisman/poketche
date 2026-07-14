@@ -7,8 +7,10 @@ CREATE EXTENSION IF NOT EXISTS vector;
 
 -- card_price: unicidade tratando `condition` nula como valor único (PG16).
 -- Substitui o índice único padrão gerado pelo Prisma por um NULLS NOT DISTINCT.
-ALTER TABLE card_price
-  DROP CONSTRAINT IF EXISTS "card_price_card_id_condition_variant_source_key";
+-- O Prisma materializa o @@unique como UNIQUE INDEX (não constraint) — daí DROP INDEX,
+-- não DROP CONSTRAINT. Deixar os dois índices coexistindo quebraria o ON CONFLICT do
+-- upsert de cotação para linhas com `condition` nula (semânticas de NULL divergentes).
+DROP INDEX IF EXISTS "card_price_card_id_condition_variant_source_key";
 CREATE UNIQUE INDEX IF NOT EXISTS card_price_unique_nnd
   ON card_price (card_id, condition, variant, source) NULLS NOT DISTINCT;
 

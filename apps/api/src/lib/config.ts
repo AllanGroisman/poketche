@@ -21,6 +21,21 @@ const schema = z.object({
   // Integrações externas — preenchidas conforme as fases avançam.
   POKEMONTCG_API_KEY: z.string().optional(),
   TCGDEX_BASE_URL: z.string().url().default('https://api.tcgdex.net/v2'),
+
+  // Precificação (US3). A fonte internacional (USD + PTAX) é a base do dia 1; a coleta da
+  // Liga permanece DESLIGADA por padrão até o parecer legal (T034) — flag por string para
+  // não cair na coerção de boolean do Zod (Boolean('false') === true).
+  INTL_PRICE_BASE_URL: z.string().url().default('https://api.pokemontcg.io/v2'),
+  PTAX_BASE_URL: z
+    .string()
+    .url()
+    .default('https://olinda.bcb.gov.br/olinda/servico/PTAX/versao/v1/odata'),
+  PRICING_SANITY_MAX_FACTOR: z.coerce.number().positive().default(5),
+  PRICING_LIGA_ENABLED: z
+    .string()
+    .optional()
+    .transform((v) => v === 'true'),
+  LIGA_BASE_URL: z.string().url().optional(),
   R2_ACCOUNT_ID: z.string().optional(),
   R2_ACCESS_KEY_ID: z.string().optional(),
   R2_SECRET_ACCESS_KEY: z.string().optional(),

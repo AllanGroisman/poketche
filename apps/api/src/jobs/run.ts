@@ -2,8 +2,11 @@ import { loadConfig } from '../lib/config.js';
 import { prisma } from '../lib/prisma.js';
 import { createCatalogProvider } from '../integrations/catalog/index.js';
 import { createImageStore } from '../integrations/storage/r2.js';
+import { createPriceResolver } from '../integrations/pricing/index.js';
 import { runCatalogSync } from './catalog-sync.js';
 import { runImageBackfill } from './image-backfill.js';
+import { runPriceRefresh, type PriceTier } from './price-refresh.js';
+import { runPriceSnapshot } from './price-snapshot.js';
 
 /**
  * Runner CLI de jobs sob demanda: `pnpm --filter api jobs:run <job> [flags]`.
@@ -48,9 +51,31 @@ async function main(): Promise<void> {
       console.log(JSON.stringify(result));
       break;
     }
+    case 'price-refresh': {
+      const resolver = createPriceResolver(config);
+      const result = await runPriceRefresh(
+        { prisma, resolver, sanityMaxFactor: config.PRICING_SANITY_MAX_FACTOR, logger },
+        {
+          tier: (flags.tier as PriceTier | undefined) ?? 'hot',
+          cardIds: flags.card ? [flags.card] : undefined,
+          take: flags.take ? Number(flags.take) : undefined,
+          skip: flags.skip ? Number(flags.skip) : undefined,
+        },
+      );
+      console.log(JSON.stringify(result));
+      break;
+    }
+    case 'price-snapshot': {
+      const result = await runPriceSnapshot(
+        { prisma, logger },
+        { since: flags.since ? new Date(flags.since) : undefined },
+      );
+      console.log(JSON.stringify(result));
+      break;
+    }
     default:
       console.error(
-        `Job desconhecido: ${job ?? '(vazio)'}. Disponíveis: catalog-sync, image-backfill`,
+        `Job desconhecido: ${job ?? '(vazio)'}. Disponíveis: catalog-sync, image-backfill, price-refresh, price-snapshot`,
       );
       process.exitCode = 1;
   }

@@ -3,8 +3,11 @@ import type { AppConfig } from '../lib/config.js';
 import { prisma } from '../lib/prisma.js';
 import { createCatalogProvider } from '../integrations/catalog/index.js';
 import { createImageStore } from '../integrations/storage/r2.js';
+import { createPriceResolver } from '../integrations/pricing/index.js';
 import { runCatalogSync } from './catalog-sync.js';
 import { runImageBackfill } from './image-backfill.js';
+import { runPriceRefresh, tierWhere } from './price-refresh.js';
+import { runPriceSnapshot } from './price-snapshot.js';
 
 /**
  * Runner de jobs agendados (pg_boss sobre Postgres, no mesmo processo da API — sem
@@ -48,7 +51,26 @@ export async function startJobs(config: AppConfig): Promise<PgBoss> {
   });
   await boss.schedule('image-backfill', '30 4 * * *'); // 04:30 diário, após o sync
 
-  // Demais handlers registrados incrementalmente por fase:
-  //   price-refresh/price-snapshot (T038), etc.
+  // price-refresh (T038): dois níveis. O conjunto quente é recotado diariamente; a cauda é
+  // fatiada em 7 (uma fatia por dia da semana), garantindo cotação com no máximo 7 dias.
+  await boss.work('price-refresh', async () => {
+    const resolver = createPriceResolver(config);
+    const deps = { prisma, resolver, sanityMaxFactor: config.PRICING_SANITY_MAX_FACTOR, logger };
+    await runPriceRefresh(deps, { tier: 'hot' });
+
+    const tailTotal = await prisma.card.count({ where: tierWhere('tail', 180) });
+    const parts = 7;
+    const take = Math.ceil(tailTotal / parts);
+    const skip = new Date().getUTCDay() * take; // fatia do dia
+    await runPriceRefresh(deps, { tier: 'tail', skip, take });
+  });
+  await boss.schedule('price-refresh', '0 5 * * *'); // 05:00 diário, após o backfill
+
+  // price-snapshot (T038): fotografa as cotações do ciclo no histórico append-only.
+  await boss.work('price-snapshot', async () => {
+    await runPriceSnapshot({ prisma, logger });
+  });
+  await boss.schedule('price-snapshot', '30 5 * * *'); // 05:30 diário, após o refresh
+
   return boss;
 }

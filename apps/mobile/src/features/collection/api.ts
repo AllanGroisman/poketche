@@ -19,6 +19,15 @@ export interface CardResult {
   image_large_url: string;
 }
 
+export type PriceSource = 'liga_pokemon' | 'intl_usd_fx';
+
+export interface CardPrice {
+  price_cents: number;
+  source: PriceSource;
+  fetched_at: string;
+  fx_rate: number | null;
+}
+
 export interface CollectionItem {
   id: string;
   condition: Condition;
@@ -27,7 +36,17 @@ export interface CollectionItem {
   quantity: number;
   acquisition_price_cents: number | null;
   added_at: string;
+  /** Cotação vigente (US3); null quando a carta ainda não tem preço. */
+  price: CardPrice | null;
+  /** Valor da posição = preço × quantidade; null sem cotação. */
+  position_value_cents: number | null;
   card: Omit<CardResult, 'supertype' | 'types'>;
+}
+
+export interface CollectionSummary {
+  total_cents: number;
+  priced_items: number;
+  unpriced_items: number;
 }
 
 export interface AddItemInput {
@@ -46,7 +65,9 @@ export const searchCards = (q: string, lang: Language = 'pt') =>
   });
 
 export const getCollection = (sort: 'recent' | 'oldest' = 'recent') =>
-  apiRequest<{ items: CollectionItem[] }>('/collection', { query: { sort } });
+  apiRequest<{ items: CollectionItem[]; summary: CollectionSummary }>('/collection', {
+    query: { sort },
+  });
 
 export const addItem = (body: AddItemInput) =>
   apiRequest<{ item: CollectionItem; wishlist_matches: unknown[] }>('/collection/items', {

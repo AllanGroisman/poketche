@@ -4,6 +4,12 @@ import { z } from 'zod';
 import { conflict, notFound } from '../../lib/errors.js';
 import { ensureProfile } from '../account/service.js';
 import { localize } from '../catalog/localize.js';
+import {
+  selectCurrentPrice,
+  serializePrice,
+  type PriceLike,
+  type SerializedPrice,
+} from '../pricing/current.js';
 
 /**
  * Coleção do usuário (T030, FR-008/009/010). Cada combinação carta+condição+idioma+
@@ -50,8 +56,12 @@ type ItemWithCard = Prisma.CollectionItemGetPayload<{
   };
 }>;
 
-function serialize(item: ItemWithCard) {
+function serialize(item: ItemWithCard, prices?: PriceLike[]) {
   const display = localize(item.card.translations, item.language);
+  // Preço vigente + valor da posição (FR-039); item sem cotação fica com price/valor nulos.
+  const price = prices ? selectCurrentPrice(prices, item) : null;
+  const serializedPrice: SerializedPrice | null = serializePrice(price);
+  const positionValueCents = price ? price.priceCents * item.quantity : null;
   return {
     id: item.id,
     condition: item.condition,
@@ -60,6 +70,8 @@ function serialize(item: ItemWithCard) {
     quantity: item.quantity,
     acquisition_price_cents: item.acquisitionPriceCents,
     added_at: item.addedAt,
+    price: serializedPrice,
+    position_value_cents: positionValueCents,
     card: {
       id: item.card.id,
       external_id: item.card.externalId,
@@ -88,7 +100,42 @@ export function registerCollection(app: FastifyInstance, prisma: PrismaClient): 
       include: includeCard,
       orderBy: { addedAt: sort === 'recent' ? 'desc' : 'asc' },
     });
-    return { items: items.map(serialize) };
+
+    // Cotações vigentes das cartas da coleção, agrupadas por carta (FR-012/FR-013).
+    const cardIds = [...new Set(items.map((i) => i.cardId))];
+    const prices = cardIds.length
+      ? await prisma.cardPrice.findMany({ where: { cardId: { in: cardIds } } })
+      : [];
+    const pricesByCard = new Map<string, PriceLike[]>();
+    for (const p of prices) {
+      const list = pricesByCard.get(p.cardId) ?? [];
+      list.push(p);
+      pricesByCard.set(p.cardId, list);
+    }
+
+    const serialized = items.map((item) => serialize(item, pricesByCard.get(item.cardId) ?? []));
+
+    // Total = Σ valor das posições com preço; itens sem preço ficam fora, com indicação (FR-016).
+    let totalCents = 0;
+    let pricedItems = 0;
+    let unpricedItems = 0;
+    for (const s of serialized) {
+      if (s.position_value_cents != null) {
+        totalCents += s.position_value_cents;
+        pricedItems++;
+      } else {
+        unpricedItems++;
+      }
+    }
+
+    return {
+      items: serialized,
+      summary: {
+        total_cents: totalCents,
+        priced_items: pricedItems,
+        unpriced_items: unpricedItems,
+      },
+    };
   });
 
   app.post('/collection/items', { preHandler: app.requireAuth }, async (req) => {
