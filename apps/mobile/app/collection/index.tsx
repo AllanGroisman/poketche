@@ -5,6 +5,7 @@ import { useAsync } from '@/lib/useAsync';
 import { imageUrl } from '@/services/api';
 import { formatBRL } from '@/lib/format';
 import { PriceTag } from '@/features/pricing/PriceTag';
+import { TrendBadge } from '@/features/pricing/history/TrendBadge';
 import {
   CONDITION_LABELS,
   VARIANT_LABELS,
@@ -47,7 +48,7 @@ export default function CollectionScreen() {
               renderItem={({ item }) => (
                 <Pressable
                   onPress={() =>
-                    router.push({ pathname: '/collection/item', params: { itemId: item.id } })
+                    router.push({ pathname: '/collection/details', params: { itemId: item.id } })
                   }
                   style={[styles.row, { borderColor: c.border }]}
                 >
@@ -63,7 +64,10 @@ export default function CollectionScreen() {
                     <Text style={[styles.meta, { color: c.muted }]}>{subtitle(item)}</Text>
                   </View>
                   <View style={styles.right}>
-                    <Text style={[styles.qty, { color: c.text }]}>×{item.quantity}</Text>
+                    <View style={styles.qtyRow}>
+                      <TrendBadge trend={item.trend} />
+                      <Text style={[styles.qty, { color: c.text }]}>×{item.quantity}</Text>
+                    </View>
                     <PriceTag price={item.price} />
                   </View>
                 </Pressable>
@@ -112,6 +116,7 @@ const styles = StyleSheet.create({
   name: { fontSize: 16, fontWeight: '600' },
   meta: { fontSize: 12 },
   right: { alignItems: 'flex-end', gap: 2, minWidth: 96 },
+  qtyRow: { flexDirection: 'row', alignItems: 'center', gap: 4 },
   qty: { fontSize: 16, fontWeight: '700' },
   totalBox: { padding: 14, borderRadius: 12, borderWidth: 1, marginBottom: 4, gap: 2 },
   totalLabel: { fontSize: 12, textTransform: 'uppercase', letterSpacing: 0.5 },

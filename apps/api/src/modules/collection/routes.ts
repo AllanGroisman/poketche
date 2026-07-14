@@ -10,6 +10,12 @@ import {
   type PriceLike,
   type SerializedPrice,
 } from '../pricing/current.js';
+import {
+  buildItemSeries,
+  computeTrend,
+  type SnapshotLike,
+  type Trend,
+} from '../pricing/history.js';
 
 /**
  * Coleção do usuário (T030, FR-008/009/010). Cada combinação carta+condição+idioma+
@@ -56,12 +62,16 @@ type ItemWithCard = Prisma.CollectionItemGetPayload<{
   };
 }>;
 
-function serialize(item: ItemWithCard, prices?: PriceLike[]) {
+function serialize(item: ItemWithCard, prices?: PriceLike[], snapshots?: SnapshotLike[]) {
   const display = localize(item.card.translations, item.language);
   // Preço vigente + valor da posição (FR-039); item sem cotação fica com price/valor nulos.
   const price = prices ? selectCurrentPrice(prices, item) : null;
   const serializedPrice: SerializedPrice | null = serializePrice(price);
   const positionValueCents = price ? price.priceCents * item.quantity : null;
+  // Indicador de tendência recente para a listagem (FR-041): sinal da variação de 7d.
+  const trend: Trend | null = snapshots
+    ? computeTrend(buildItemSeries(snapshots, item), price?.priceCents ?? null, 7)
+    : null;
   return {
     id: item.id,
     condition: item.condition,
@@ -72,6 +82,7 @@ function serialize(item: ItemWithCard, prices?: PriceLike[]) {
     added_at: item.addedAt,
     price: serializedPrice,
     position_value_cents: positionValueCents,
+    trend,
     card: {
       id: item.card.id,
       external_id: item.card.externalId,
@@ -113,7 +124,32 @@ export function registerCollection(app: FastifyInstance, prisma: PrismaClient): 
       pricesByCard.set(p.cardId, list);
     }
 
-    const serialized = items.map((item) => serialize(item, pricesByCard.get(item.cardId) ?? []));
+    // Snapshots recentes (≈8d) só para o indicador de tendência da listagem (FR-041). A janela
+    // cobre a referência em ou antes do corte de 7d sem carregar o histórico completo.
+    const trendSince = new Date(Date.now() - 8 * 86_400_000);
+    const snaps = cardIds.length
+      ? await prisma.cardPriceSnapshot.findMany({
+          where: { cardId: { in: cardIds }, fetchedAt: { gte: trendSince } },
+          select: {
+            cardId: true,
+            condition: true,
+            variant: true,
+            priceCents: true,
+            source: true,
+            fetchedAt: true,
+          },
+        })
+      : [];
+    const snapsByCard = new Map<string, SnapshotLike[]>();
+    for (const s of snaps) {
+      const list = snapsByCard.get(s.cardId) ?? [];
+      list.push(s);
+      snapsByCard.set(s.cardId, list);
+    }
+
+    const serialized = items.map((item) =>
+      serialize(item, pricesByCard.get(item.cardId) ?? [], snapsByCard.get(item.cardId) ?? []),
+    );
 
     // Total = Σ valor das posições com preço; itens sem preço ficam fora, com indicação (FR-016).
     let totalCents = 0;

@@ -55,8 +55,17 @@ transações, comissões — e contratos de adapters externos) e nos fluxos de i
 > um bug do `0001_constraints.sql` (usava DROP CONSTRAINT num índice único → dois índices
 > colidiam no `ON CONFLICT`); agora só o `NULLS NOT DISTINCT` permanece. **87 testes passando**
 > (20 unit de pricing, 8 de contrato da Liga, 4 de integração de fallback). **T034 permanece
-> pendência externa** (parecer legal) — a ativação da coleta Liga não foi implementada. US8
-> não iniciada.
+> pendência externa** (parecer legal) — a ativação da coleta Liga não foi implementada.
+>
+> **US8 — Estatísticas e histórico por carta (2026-07-14, checkpoint)**: T042–T045 completas e
+> validadas — módulo puro `pricing/history.ts` (variações 7/30/90d com referência honesta em ou
+> antes da janela, maior/menor, ganho/perda vs. aquisição ou desde a adição, tendência de 7d),
+> endpoint `/collection/items/:id/details` e endpoint público `/catalog/cards/:id/price-history`;
+> **sem interpolar** — períodos sem dados vêm `null` e `history_available=false` (< 2 snapshots)
+> vira "histórico indisponível". `GET /collection` agora traz `trend` por item (FR-041). Mobile:
+> tela de detalhes com gráfico de barras sem dependência (`Sparkline`), variações/ganho-perda/
+> maior-menor e `TrendBadge` na listagem. **110 testes passando** (+23: 18 unit de variações,
+> 5 de integração dos endpoints de detalhe/histórico). US4/US7/US10 (resto do P3) não iniciadas.
 
 ## Phase 1: Setup (Shared Infrastructure)
 
@@ -156,10 +165,10 @@ transações, comissões — e contratos de adapters externos) e nos fluxos de i
 
 **Independent Test**: com ≥2 snapshots, detalhe mostra gráfico e variações; com <2, "histórico indisponível"; ganho/perda exato
 
-- [ ] T042 [P] [US8] Endpoint GET `/collection/items/:id/details` — variações 7/30/90d/desde-adição, maior/menor, valor da posição, ganho/perda (apps/api/src/modules/collection/details.ts)
-- [ ] T043 [P] [US8] Endpoint 🔓 GET `/catalog/cards/:id/price-history?period=` a partir dos snapshots (apps/api/src/modules/catalog/price-history.ts)
-- [ ] T044 [US8] Testes de unidade: cálculo de variações, lacunas sem interpolação, ganho/perda (apps/api/tests/unit/variations.test.ts)
-- [ ] T045 [US8] Mobile: tela de detalhes com gráfico + indicadores de tendência na listagem da coleção (apps/mobile/app/collection/[itemId].tsx, src/features/pricing/history/)
+- [x] T042 [P] [US8] Endpoint GET `/collection/items/:id/details` — variações 7/30/90d/desde-adição, maior/menor, valor da posição, ganho/perda (apps/api/src/modules/collection/details.ts) · lógica pura em `src/modules/pricing/history.ts`; `history_available` sinaliza < 2 snapshots
+- [x] T043 [P] [US8] Endpoint 🔓 GET `/catalog/cards/:id/price-history?period=7d|30d|90d|all` a partir dos snapshots (apps/api/src/modules/catalog/price-history.ts) — público/cacheável, variante de mercado com mais pontos, `change` do período sem interpolar
+- [x] T044 [US8] Testes de unidade: cálculo de variações, lacunas sem interpolação, ganho/perda (apps/api/tests/unit/variations.test.ts — 18 casos) + integração dos dois endpoints (apps/api/tests/integration/card-details.test.ts — 5 casos)
+- [x] T045 [US8] Mobile: tela de detalhes com gráfico (Sparkline sem dependência), variações/ganho-perda/maior-menor e "histórico indisponível"; `TrendBadge` na listagem (apps/mobile/app/collection/details.tsx, src/features/pricing/history/) — nota: rota `details.tsx` seguindo a convenção plana do app (não `[itemId].tsx`)
 
 **Checkpoint**: análise por carta completa
 

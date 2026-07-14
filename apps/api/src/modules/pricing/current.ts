@@ -26,8 +26,8 @@ export interface SerializedPrice {
   fx_rate: number | null;
 }
 
-// Menor = mais prioritário.
-const SOURCE_RANK: Record<PriceSource, number> = { liga_pokemon: 0, intl_usd_fx: 1 };
+// Menor = mais prioritário. Fonte primária BR (Liga) antes do fallback internacional.
+export const SOURCE_RANK: Record<PriceSource, number> = { liga_pokemon: 0, intl_usd_fx: 1 };
 
 export function selectCurrentPrice(prices: PriceLike[], item: DisplayItem): PriceLike | null {
   const candidates = prices.filter(
