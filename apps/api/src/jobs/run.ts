@@ -7,6 +7,7 @@ import { runCatalogSync } from './catalog-sync.js';
 import { runImageBackfill } from './image-backfill.js';
 import { runPriceRefresh, type PriceTier } from './price-refresh.js';
 import { runPriceSnapshot } from './price-snapshot.js';
+import { runCollectionValueSnapshot } from './collection-value-snapshot.js';
 
 /**
  * Runner CLI de jobs sob demanda: `pnpm --filter api jobs:run <job> [flags]`.
@@ -73,9 +74,17 @@ async function main(): Promise<void> {
       console.log(JSON.stringify(result));
       break;
     }
+    case 'collection-value-snapshot': {
+      const result = await runCollectionValueSnapshot(
+        { prisma, logger },
+        { onlyUserId: flags.user },
+      );
+      console.log(JSON.stringify(result));
+      break;
+    }
     default:
       console.error(
-        `Job desconhecido: ${job ?? '(vazio)'}. Disponíveis: catalog-sync, image-backfill, price-refresh, price-snapshot`,
+        `Job desconhecido: ${job ?? '(vazio)'}. Disponíveis: catalog-sync, image-backfill, price-refresh, price-snapshot, collection-value-snapshot`,
       );
       process.exitCode = 1;
   }

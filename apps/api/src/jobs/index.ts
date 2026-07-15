@@ -8,6 +8,7 @@ import { runCatalogSync } from './catalog-sync.js';
 import { runImageBackfill } from './image-backfill.js';
 import { runPriceRefresh, tierWhere } from './price-refresh.js';
 import { runPriceSnapshot } from './price-snapshot.js';
+import { runCollectionValueSnapshot } from './collection-value-snapshot.js';
 
 /**
  * Runner de jobs agendados (pg_boss sobre Postgres, no mesmo processo da API — sem
@@ -71,6 +72,12 @@ export async function startJobs(config: AppConfig): Promise<PgBoss> {
     await runPriceSnapshot({ prisma, logger });
   });
   await boss.schedule('price-snapshot', '30 5 * * *'); // 05:30 diário, após o refresh
+
+  // collection-value-snapshot (T046): fotografa o valor da coleção de cada usuário (FR-017).
+  await boss.work('collection-value-snapshot', async () => {
+    await runCollectionValueSnapshot({ prisma, logger });
+  });
+  await boss.schedule('collection-value-snapshot', '0 6 * * *'); // 06:00 diário, após o snapshot
 
   return boss;
 }

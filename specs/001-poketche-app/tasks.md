@@ -66,6 +66,17 @@ transações, comissões — e contratos de adapters externos) e nos fluxos de i
 > tela de detalhes com gráfico de barras sem dependência (`Sparkline`), variações/ganho-perda/
 > maior-menor e `TrendBadge` na listagem. **110 testes passando** (+23: 18 unit de variações,
 > 5 de integração dos endpoints de detalhe/histórico). US4/US7/US10 (resto do P3) não iniciadas.
+>
+> **US4 — Estatísticas da coleção (2026-07-15, checkpoint)**: T046–T049 completas e validadas —
+> módulo puro `stats/valuation.ts` (valor total, distribuição set/rarity/type, top valor,
+> valorização/desvalorização e P&L vs. aquisição reusando a variação honesta da US8, completude
+> por edição), endpoints `/stats/overview|history|distribution|rankings|completion` e job diário
+> `collection-value-snapshot` (idempotente por dia, mesma valoração da listagem) agendado e no
+> CLI. Mobile: dashboard (`app/dashboard`) com valor+evolução (Sparkline), distribuição/rankings
+> segmentados e completude, sem dependência de gráfico. **128 testes passando** (+18: 9 unit de
+> estatísticas, 9 de integração incluindo o job de snapshot). Nota: distribuição por tipo conta
+> a carta em cada tipo (grupos sobrepostos, não somam ao total). US7/US10 (resto do P3) não
+> iniciadas.
 
 ## Phase 1: Setup (Shared Infrastructure)
 
@@ -180,10 +191,10 @@ transações, comissões — e contratos de adapters externos) e nos fluxos de i
 
 **Independent Test**: total = Σ preço×quantidade; gráficos e completude batem com fixtures
 
-- [ ] T046 [P] [US4] Job `collection-value-snapshot` diário + migration (apps/api/src/jobs/collection-value-snapshot.ts, migration)
-- [ ] T047 [US4] Endpoints `/stats/overview|history|distribution|rankings|completion` (apps/api/src/modules/stats/routes.ts)
-- [ ] T048 [US4] Mobile: dashboard com gráficos e rankings (apps/mobile/app/dashboard/, src/features/stats/)
-- [ ] T049 [US4] Teste de integração: stats vs. fixtures (total, distribuições, rankings, completude) (apps/api/tests/integration/stats.test.ts)
+- [x] T046 [P] [US4] Job `collection-value-snapshot` diário — a tabela `collection_value_snapshot` já veio na migration `init`; job append-only reusa `valueSnapshot` (mesma regra da listagem), idempotente por dia UTC; agendado às 06:00 (após o price-snapshot) e no CLI `jobs:run collection-value-snapshot [--user=]` (apps/api/src/jobs/collection-value-snapshot.ts)
+- [x] T047 [US4] Endpoints `/stats/overview|history|distribution|rankings|completion` — lógica pura em `src/modules/stats/valuation.ts`; overview (valor total + contagens + delta vs. último snapshot), history (evolução por snapshots + ponto ao vivo), distribution (set/rarity/type; tipo sobrepõe), rankings (top_value/gainers/losers/acquisition_pnl reusando a variação honesta da US8), completion por edição (apps/api/src/modules/stats/routes.ts)
+- [x] T048 [US4] Mobile: dashboard com valor+evolução (Sparkline), distribuição e rankings segmentados, completude — `BarList`/`RankingList`/`Segmented` sem dependência de gráfico (apps/mobile/app/dashboard/index.tsx, src/features/stats/); link a partir da home
+- [x] T049 [US4] Testes: unit de valoração/distribuição/rankings/completude (apps/api/tests/unit/stats.test.ts — 9 casos, constituição I) + integração stats vs. fixtures incluindo o job de snapshot (apps/api/tests/integration/stats.test.ts — 9 casos)
 
 **Checkpoint**: dashboard funcional
 

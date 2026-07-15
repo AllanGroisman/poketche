@@ -20,6 +20,9 @@ export default function Home() {
             <Link href="/collection" style={[styles.link, { color: c.primary }]}>
               Minha coleção →
             </Link>
+            <Link href="/dashboard" style={[styles.link, { color: c.primary }]}>
+              Estatísticas da coleção →
+            </Link>
             <Link href="/settings/visibility" style={[styles.link, { color: c.primary }]}>
               Visibilidade e link público →
             </Link>
