@@ -4,6 +4,7 @@ import { StatusBar } from 'expo-status-bar';
 import { LoadingState } from '@/components';
 import { useSession } from '@/features/account/useSession';
 import { takePendingReturn } from '@/services/auth-guard';
+import { registerPushToken } from '@/services/push';
 
 /** Rotas de visitante, acessíveis sem sessão (US7/US10, FR-003b/FR-068). */
 const PUBLIC_SEGMENTS = ['public', 'explore'];
@@ -27,6 +28,13 @@ export default function RootLayout() {
     if (!session && !inAuthGroup && !isPublic) router.replace('/(auth)/login');
     else if (session && inAuthGroup) router.replace(takePendingReturn() ?? '/');
   }, [session, loading, segments, router]);
+
+  // Registra o aparelho para os alertas de preço-alvo (US9, T062). Só com sessão: o token é
+  // vinculado ao usuário. O token pode ser rotacionado pelo sistema, então reenviamos a cada
+  // login — o upsert do servidor é idempotente.
+  useEffect(() => {
+    if (session) void registerPushToken();
+  }, [session]);
 
   return (
     <>

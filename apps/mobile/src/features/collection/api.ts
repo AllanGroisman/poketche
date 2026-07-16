@@ -1,4 +1,6 @@
 import { apiRequest } from '../../services/api';
+// Type-only: o ciclo collection↔wishlist é apagado na compilação e não vira require circular.
+import type { WishlistMatch } from '../wishlist/api';
 
 /** Tipos e chamadas da busca de catálogo e da coleção (US2). */
 
@@ -114,11 +116,16 @@ export const getCollection = (sort: 'recent' | 'oldest' = 'recent', cardId?: str
     query: { sort, card_id: cardId },
   });
 
+/**
+ * Adiciona (ou faz merge de) um item. `wishlist_matches` alimenta a pergunta de remoção da US9
+ * (FR-052); `wishlist_auto_removed` diz que a API já removeu, por preferência do usuário.
+ */
 export const addItem = (body: AddItemInput) =>
-  apiRequest<{ item: CollectionItem; wishlist_matches: unknown[] }>('/collection/items', {
-    method: 'POST',
-    body,
-  });
+  apiRequest<{
+    item: CollectionItem;
+    wishlist_matches: WishlistMatch[];
+    wishlist_auto_removed: boolean;
+  }>('/collection/items', { method: 'POST', body });
 
 export const updateItem = (id: string, body: Partial<Omit<AddItemInput, 'card_id'>>) =>
   apiRequest<{ item: CollectionItem }>(`/collection/items/${id}`, { method: 'PATCH', body });

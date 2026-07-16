@@ -8,6 +8,8 @@ import { runImageBackfill } from './image-backfill.js';
 import { runPriceRefresh, type PriceTier } from './price-refresh.js';
 import { runPriceSnapshot } from './price-snapshot.js';
 import { runCollectionValueSnapshot } from './collection-value-snapshot.js';
+import { runWishlistAlerts } from './wishlist-alerts.js';
+import { createPushProvider } from '../integrations/push/index.js';
 
 /**
  * Runner CLI de jobs sob demanda: `pnpm --filter api jobs:run <job> [flags]`.
@@ -82,9 +84,22 @@ async function main(): Promise<void> {
       console.log(JSON.stringify(result));
       break;
     }
+    case 'wishlist-alerts': {
+      const result = await runWishlistAlerts(
+        {
+          prisma,
+          push: createPushProvider(config, logger),
+          minIntervalMs: config.WISHLIST_ALERT_MIN_INTERVAL_HOURS * 60 * 60 * 1000,
+          logger,
+        },
+        { onlyUserId: flags.user },
+      );
+      console.log(JSON.stringify(result));
+      break;
+    }
     default:
       console.error(
-        `Job desconhecido: ${job ?? '(vazio)'}. Disponíveis: catalog-sync, image-backfill, price-refresh, price-snapshot, collection-value-snapshot`,
+        `Job desconhecido: ${job ?? '(vazio)'}. Disponíveis: catalog-sync, image-backfill, price-refresh, price-snapshot, collection-value-snapshot, wishlist-alerts`,
       );
       process.exitCode = 1;
   }

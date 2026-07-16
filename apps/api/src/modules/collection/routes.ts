@@ -16,12 +16,14 @@ import {
   type SnapshotLike,
   type Trend,
 } from '../pricing/history.js';
+import { resolveWishlistMatches } from '../wishlist/matches.js';
 
 /**
  * Coleção do usuário (T030, FR-008/009/010). Cada combinação carta+condição+idioma+
  * variante é um item distinto (unique); adicionar a mesma combinação faz merge (soma a
  * quantidade). Regras de anúncio/estoque (422 abaixo do comprometido, desativação) entram
- * na US6. Preço vigente/valor/tendência no GET entram na US3.
+ * na US6. Preço vigente/valor/tendência no GET vieram na US3; `wishlist_matches[]` do POST,
+ * na US9 (FR-052).
  */
 
 const conditionEnum = z.enum(['mint', 'near_mint', 'excellent', 'good', 'played', 'damaged']);
@@ -211,8 +213,14 @@ export function registerCollection(app: FastifyInstance, prisma: PrismaClient): 
       include: includeCard,
     });
 
-    // wishlist_matches entra na US9; stub por ora (FR-052).
-    return { item: serialize(item), wishlist_matches: [] as unknown[] };
+    // Carta em wishlist: devolve os casamentos p/ o app perguntar sobre a remoção — ou já
+    // removidos, se o usuário ligou a auto-remoção (US9, FR-052).
+    const wishlist = await resolveWishlistMatches(prisma, req.user!.id, body.card_id);
+    return {
+      item: serialize(item),
+      wishlist_matches: wishlist.matches,
+      wishlist_auto_removed: wishlist.auto_removed,
+    };
   });
 
   app.patch('/collection/items/:id', { preHandler: app.requireAuth }, async (req) => {

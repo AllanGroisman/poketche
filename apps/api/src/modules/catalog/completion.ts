@@ -56,7 +56,7 @@ export function registerCatalogCompletion(app: FastifyInstance, prisma: PrismaCl
       pct: completionPct(quantityByCard.size, set.totalCards),
       catalog_cards: cards.length,
       owned_cards: [...quantityByCard].map(([card_id, quantity]) => ({ card_id, quantity })),
-      /** Faltantes: alimenta o atalho em lote para wishlist (o endpoint de wishlist vem na US9). */
+      /** Faltantes: alimentam o atalho em lote `POST /wishlists/:id/items { card_ids }` (US9). */
       missing_card_ids: missing,
     };
   });

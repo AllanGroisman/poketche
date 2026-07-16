@@ -9,6 +9,7 @@ import { useSession } from '@/features/account/useSession';
 import { SOURCE_LABELS } from '@/features/pricing/PriceTag';
 import { CONDITION_LABELS, VARIANT_LABELS, getCollection } from '@/features/collection/api';
 import { getCard, getCardListings, type CardDetail } from '@/features/catalog/api';
+import { addCardToWishlist } from '@/features/wishlist/add-to-wishlist';
 
 /**
  * Detalhe público da carta (T057/T058, FR-070/FR-071): imagem em alta, dados, preço de mercado
@@ -53,6 +54,12 @@ function CardBody({ card }: { card: CardDetail }) {
       pathname: '/collection/item',
       params: { cardId: card.id, cardName: card.name, cardImage: card.image_small_url },
     });
+  };
+
+  // Ação rápida da US10 que esperava a US9 (FR-071).
+  const addToWishlist = () => {
+    if (!requireSession(session ?? null, '/explore/card')) return;
+    void addCardToWishlist(card.id, card.name);
   };
 
   return (
@@ -129,6 +136,14 @@ function CardBody({ card }: { card: CardDetail }) {
         <Text style={styles.ctaText}>Adicionar à coleção</Text>
       </Pressable>
 
+      <Pressable
+        accessibilityRole="button"
+        onPress={addToWishlist}
+        style={[styles.ctaSecondary, { borderColor: c.primary }]}
+      >
+        <Text style={[styles.ctaText, { color: c.primary }]}>Adicionar à wishlist</Text>
+      </Pressable>
+
       <Text style={[styles.meta, { color: c.muted }]}>
         {activeListings > 0
           ? `${activeListings} ${activeListings === 1 ? 'anúncio ativo' : 'anúncios ativos'} no marketplace`
@@ -152,6 +167,13 @@ const styles = StyleSheet.create({
     marginTop: 14,
     paddingVertical: 13,
     borderRadius: 10,
+    alignItems: 'center',
+  },
+  ctaSecondary: {
+    marginTop: 8,
+    paddingVertical: 13,
+    borderRadius: 10,
+    borderWidth: 1,
     alignItems: 'center',
   },
   ctaText: { color: '#fff', fontSize: 15, fontWeight: '700' },

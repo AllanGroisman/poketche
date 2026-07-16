@@ -99,10 +99,48 @@ transações, comissões — e contratos de adapters externos) e nos fluxos de i
 > "10" antes de "2" (`card.number` é texto → índice por expressão no `0002_catalog_indexes.sql`);
 > e o ETag do detalhe ignoraria o `price-refresh` se olhasse só o `synced_at`. **163 testes
 > passando** (+26: 20 de integração do explorador, 6 unit de `selectCardMarketPrice`).
-> **Pendências da US10**: o atalho em lote p/ wishlist (FR-072) e a ação rápida "adicionar à
-> wishlist" (FR-071) dependem da **US9**; `/catalog/cards/:id/listings` responde `[]` até a
+> **Pendências da US10**: ~~o atalho em lote p/ wishlist (FR-072) e a ação rápida "adicionar à
+> wishlist" (FR-071) dependem da **US9**~~ — **fechadas na US9 (2026-07-16)**;
+> `/catalog/cards/:id/listings` responde `[]` até a
 > **US6**. Desvio de contrato registrado: a posse do detalhe vem de `GET /collection?card_id=`
 > (o contrato cita `/collection/items?card_id=`, rota que não existe — GET é `/collection`).
+>
+> **US9 — Wishlists com preço-alvo (2026-07-16, checkpoint)**: T060–T065 completas e validadas —
+> CRUD de wishlists, preço-alvo editável, indicadores da tela (preço/alvo/diferença/atingiu-alvo/
+> já-na-coleção/anúncios no alvo), adapter de push isolado + `/me/push-tokens`, e job
+> `wishlist-alerts` com rearme, intervalo mínimo e dedupe por carta. **Fecha também as duas
+> pendências da US10**: a ação rápida "adicionar à wishlist" (FR-071) e o atalho em lote das
+> faltantes (FR-072, sobre `missing_card_ids`), além do stub de `wishlist_matches[]` da T030
+> (FR-052). **205 testes passando** (+18 unit de alertas/variantes, +24 de integração).
+>
+> Três decisões que amarram a US9:
+>
+> 1. **FR-047 tem uma ambiguidade e resolvemos contra a letra**: "volta a notificar somente se
+>    [rearme] **ou** após o intervalo mínimo" lido ao pé da letra faz o intervalo ser um gatilho
+>    paralelo — carta parada abaixo do alvo notificando a cada intervalo. Com o `price-refresh`
+>    diário e o intervalo de 24h que a própria T063 especifica, isso seria **um push por dia por
+>    carta**: as "notificações repetidas" que o FR-047 manda evitar, e o oposto da 1ª oração do
+>    cenário 4. Implementado como **condição adicional** (`armed` **e** intervalo vencido) — o
+>    rearme é o único gatilho, e o intervalo passa a valer contra oscilação (o caso que a T064
+>    manda testar). Sem isso `alert_state` seria inerte, apesar de o data-model exigi-lo.
+>    **A redação do FR-047 e do cenário 4 merece correção na spec.**
+> 2. **Alvo × variantes**: "menor cotação entre as variantes" **não** é `min()` sobre as cotações
+>    — dentro de cada variante ainda vale a preferência de fonte (Liga > intl). Pegar o intl só
+>    por ser mais barato notificaria um preço que o app não exibe em lugar nenhum.
+> 3. **Rearme independe do toggle**: as notificações desligadas silenciam o envio, não a máquina
+>    de estados — senão desligar/religar deixaria o item preso em `notified` para sempre. Os
+>    indicadores da tela são calculados ao vivo (preço vs. alvo) e nunca leem `alert_state`, que
+>    é o que faz o FR-048 valer.
+>
+> Bug latente corrigido de passagem: `card-details.test.ts` criava cartas fixas "Charizard"/
+> "Bulbasaur" e as suítes rodam **em paralelo contra o mesmo banco** — a busca `q=chari` da US2
+> ranqueava a carta da outra suíte e falhava de forma intermitente (o arquivo violava a regra de
+> nomes exclusivos já anotada aqui embaixo). Agora usa nomes com token por execução.
+>
+> **Pendências da US9**: os destaques de anúncios ≤ alvo (FR-050) estão implementados ponta a
+> ponta mas respondem vazio até a **US6** criar anúncios; o envio real de push nunca rodou contra
+> o Expo (o provider de testes é noop) — exige **validação em aparelho físico** com
+> `EXPO_ACCESS_TOKEN`/projectId do EAS.
 >
 > **Ambiente (2026-07-16)**: máquina nova — Docker Desktop instalado, `pnpm` só via `corepack
 > pnpm` (não está no PATH). O `prettier --check` acusa ~93 arquivos por CRLF (`core.autocrlf=
@@ -274,12 +312,12 @@ transações, comissões — e contratos de adapters externos) e nos fluxos de i
 
 **Independent Test**: criar wishlist com alvo; baixar preço via fixture; 1 push sem repetição até rearme; sinalização "já na coleção"; pergunta de remoção
 
-- [ ] T060 [P] [US9] Migrations `wishlist` + `wishlist_item` (alert_state, last_notified_at) (apps/api/src/db/migrations/)
-- [ ] T061 [US9] Endpoints CRUD wishlists/itens + GET com preço atual/alvo/diferença/atingiu-alvo/já-na-coleção (apps/api/src/modules/wishlist/routes.ts)
-- [ ] T062 [P] [US9] Adapter Expo Notifications + endpoint POST `/me/push-tokens` (apps/api/src/integrations/push/, src/modules/account/push-tokens.ts)
-- [ ] T063 [US9] Job `wishlist-alerts` após price-refresh: alvo pela menor cotação entre variantes, rearme + intervalo mínimo 24h, toggles por wishlist/global, no máx. 1 notificação por evento (apps/api/src/jobs/wishlist-alerts.ts)
-- [ ] T064 [US9] Testes de unidade: regras de rearme/intervalo/oscilação/variantes (apps/api/tests/unit/wishlist.test.ts)
-- [ ] T065 [US9] Mobile: telas de wishlists + destaques de anúncios ≤ alvo + pergunta/auto-remoção ao registrar carta (integra POST /collection/items `wishlist_matches[]`) (apps/mobile/app/wishlists/, src/features/wishlist/)
+- [x] T060 [P] [US9] Migrations `wishlist` + `wishlist_item` (alert_state, last_notified_at) — já materializadas na migration `init` (mesmo caso de T028/T035/T046); UNIQUE(wishlist_id, card_id) conferida no banco
+- [x] T061 [US9] Endpoints CRUD wishlists/itens + GET com preço atual/alvo/diferença/atingiu-alvo/já-na-coleção (apps/api/src/modules/wishlist/routes.ts) — alvo enfrenta `selectWishlistPrice` (menor entre variantes, com a fonte preferida **dentro** de cada variante); payload sempre diz qual variante é o preço; `listings_at_or_below_target` já implementado (vazio até a US6). Desvio de contrato: **PATCH** `/wishlists/:id/items/:itemId` (o contrato só lista POST/DELETE) — sem ele, editar o alvo exigiria remover/re-adicionar, zerando `alert_state`/`last_notified_at` e reabrindo o spam do FR-047; a edição rearma de propósito
+- [x] T062 [P] [US9] Adapter Expo Notifications + endpoint POST `/me/push-tokens` (apps/api/src/integrations/push/{types,expo,index}.ts, src/modules/account/push-tokens.ts) — envio nunca lança (push é acessório ao ciclo de cotações); tokens `DeviceNotRegistered` são limpos; token é único por **aparelho** e migra de conta no upsert. Mobile: `src/services/push.ts` registra no login (permissão negada não quebra nada)
+- [x] T063 [US9] Job `wishlist-alerts` após price-refresh (05:45, depois do refresh das 05:00): alvo pela menor cotação entre variantes, rearme + intervalo mínimo 24h (`WISHLIST_ALERT_MIN_INTERVAL_HOURS`), toggles por wishlist/global, no máx. 1 notificação por carta por evento (apps/api/src/jobs/wishlist-alerts.ts; regras puras em src/modules/wishlist/alerts.ts) — estado grava mesmo se o push falhar, senão a mesma queda re-notificaria
+- [x] T064 [US9] Testes de unidade: regras de rearme/intervalo/oscilação/variantes (apps/api/tests/unit/wishlist.test.ts — 18 casos)
+- [x] T065 [US9] Mobile: telas de wishlists + destaques de anúncios ≤ alvo + pergunta/auto-remoção ao registrar carta (integra POST /collection/items `wishlist_matches[]`) (apps/mobile/app/wishlists/{index,detail}.tsx, src/features/wishlist/) — rotas planas com params, seguindo a convenção do app; `removal-prompt.ts` e `add-to-wishlist.ts` ficam no feature porque scanner (US5) e marketplace (US6) reusam o mesmo fluxo (FR-052 vale "por qualquer método")
 
 **Checkpoint**: demanda ativa alimentando o app
 

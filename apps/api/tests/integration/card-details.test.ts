@@ -16,8 +16,14 @@ const TEST_URL =
   process.env.DATABASE_URL_TEST ?? 'postgresql://poketche:poketche@localhost:5435/poketche_test';
 
 const userId = randomUUID();
-const setExternalId = `details-set-${userId.slice(0, 8)}`;
+const tok = userId.slice(0, 8);
+const setExternalId = `details-set-${tok}`;
 const auth = { 'x-test-user-id': userId };
+
+// Nomes exclusivos por execução: as suítes rodam em paralelo contra o mesmo banco e a busca do
+// catálogo ranqueia sobre todas as traduções. "Charizard"/"Bulbasaur" fixos aqui faziam a US2
+// (`q=chari`) ranquear a carta desta suíte e falhar de forma intermitente.
+const NAME = { priced: `Pricedmon-${tok}`, sparse: `Sparsemon-${tok}` };
 
 let prisma: PrismaClient;
 let app: FastifyInstance;
@@ -72,8 +78,8 @@ beforeAll(async () => {
   });
   await prisma.userProfile.create({ data: { id: userId, displayName: 'Colecionador' } });
 
-  pricedCardId = await makeCard('1', 'Charizard');
-  sparseCardId = await makeCard('2', 'Bulbasaur');
+  pricedCardId = await makeCard('1', NAME.priced);
+  sparseCardId = await makeCard('2', NAME.sparse);
 
   // Item com preço de aquisição e histórico de 3 pontos (variante normal, sem condição na fonte).
   const item = await prisma.collectionItem.create({

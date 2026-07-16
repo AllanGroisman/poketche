@@ -57,6 +57,20 @@ export function serializePrice(price: PriceLike | null): SerializedPrice | null 
 /** Variante de referência de mercado, na ordem em que a carta costuma ser negociada. */
 const VARIANT_PREFERENCE: Variant[] = ['normal', 'holo', 'reverse_foil'];
 
+/** Condição sem contexto de item: a genérica da fonte antes da melhor conservada. */
+const condRank = (c: Condition | null) => (c === null ? 0 : c === 'near_mint' ? 1 : 2);
+
+/**
+ * Preferência entre cotações **da mesma variante** de uma carta, sem contexto de item: fonte
+ * primária BR antes do fallback internacional; entre fontes iguais, a cotação sem condição
+ * (preço de mercado genérico) antes da melhor conservada.
+ */
+function byMarketPreference(a: PriceLike, b: PriceLike): number {
+  const src = SOURCE_RANK[a.source] - SOURCE_RANK[b.source];
+  if (src !== 0) return src;
+  return condRank(a.condition) - condRank(b.condition);
+}
+
 /**
  * Cotação de referência de mercado de uma **carta**, sem contexto de item (US10, FR-070): o
  * catálogo mostra a carta, não uma posse — não há condição/variante para casar. Regras:
@@ -72,12 +86,28 @@ export function selectCardMarketPrice(prices: PriceLike[]): PriceLike | null {
   if (prices.length === 0) return null;
   const variant = VARIANT_PREFERENCE.find((v) => prices.some((p) => p.variant === v));
   if (!variant) return null;
-  const candidates = prices.filter((p) => p.variant === variant);
-  const condRank = (c: Condition | null) => (c === null ? 0 : c === 'near_mint' ? 1 : 2);
-  candidates.sort((a, b) => {
-    const src = SOURCE_RANK[a.source] - SOURCE_RANK[b.source];
-    if (src !== 0) return src;
-    return condRank(a.condition) - condRank(b.condition);
-  });
+  const candidates = prices.filter((p) => p.variant === variant).sort(byMarketPreference);
   return candidates[0] ?? null;
+}
+
+/**
+ * Cotação que o **preço-alvo de wishlist** enfrenta (US9, FR-046): a wishlist é no nível da
+ * carta canônica — o usuário não escolhe variante —, então o alvo é avaliado contra o **menor
+ * preço vigente entre as variantes** (data-model §Wishlists), e quem exibe/notifica indica qual
+ * variante atingiu o alvo.
+ *
+ * Note que "menor entre as variantes" **não** é `min()` sobre todas as cotações: dentro de uma
+ * variante ainda vale a preferência de fonte/condição (`byMarketPreference`) — senão o alvo
+ * seria comparado contra o fallback internacional só por ele estar mais barato que a fonte
+ * primária, notificando um preço que o app não exibe. Escolhe-se a cotação de cada variante e
+ * só então a mais barata entre elas. Empate resolve pela ordem usual de negociação.
+ * Função pura — coberta pelos testes de dinheiro (constituição I).
+ */
+export function selectWishlistPrice(prices: PriceLike[]): PriceLike | null {
+  const perVariant = VARIANT_PREFERENCE.map(
+    (v) => prices.filter((p) => p.variant === v).sort(byMarketPreference)[0],
+  ).filter((p): p is PriceLike => p != null);
+  if (perVariant.length === 0) return null;
+  // Estável: `VARIANT_PREFERENCE` já ordena os empates de preço pela ordem de negociação.
+  return perVariant.reduce((cheapest, p) => (p.priceCents < cheapest.priceCents ? p : cheapest));
 }

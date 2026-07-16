@@ -12,6 +12,7 @@ import { registerCollection } from './modules/collection/routes.js';
 import { registerCollectionDetails } from './modules/collection/details.js';
 import { registerCollectionPublic } from './modules/collection/public.js';
 import { registerStats } from './modules/stats/routes.js';
+import { registerWishlists } from './modules/wishlist/routes.js';
 import { registerAccount } from './modules/account/index.js';
 import { createImageStore } from './integrations/storage/r2.js';
 import { StubPaymentProvider } from './integrations/payments/provider.js';
@@ -56,6 +57,7 @@ export async function buildApp(
       registerCollectionDetails(scope, prisma);
       registerCollectionPublic(scope, prisma);
       registerStats(scope, prisma);
+      registerWishlists(scope, prisma);
       registerAccount(scope, {
         prisma,
         payments,

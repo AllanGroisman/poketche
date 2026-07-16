@@ -43,6 +43,10 @@ const schema = z.object({
   R2_BUCKET_DISPUTES: z.string().default('poketche-disputes'),
   PAGARME_API_KEY: z.string().optional(),
   EXPO_ACCESS_TOKEN: z.string().optional(),
+
+  // Wishlists (US9). Intervalo mínimo entre dois pushes da mesma carta (FR-047) — é uma
+  // condição adicional ao rearme, nunca um gatilho por si (ver modules/wishlist/alerts.ts).
+  WISHLIST_ALERT_MIN_INTERVAL_HOURS: z.coerce.number().positive().default(24),
 });
 
 export type AppConfig = z.infer<typeof schema>;

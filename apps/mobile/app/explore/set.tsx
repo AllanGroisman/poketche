@@ -12,6 +12,7 @@ import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
 import { EmptyState, ErrorState, LoadingState, Screen, useThemeColors } from '@/components';
 import { ApiError, imageUrl } from '@/services/api';
 import { useSession } from '@/features/account/useSession';
+import { addMissingToWishlist } from '@/features/wishlist/add-to-wishlist';
 import {
   getSetCards,
   getSetCompletion,
@@ -171,6 +172,18 @@ function CompletionHeader({
           style={[styles.barFill, { backgroundColor: c.primary, width: `${completion.pct}%` }]}
         />
       </View>
+      {/* Atalho em lote das faltantes (FR-072) — dependia dos endpoints da US9. */}
+      {missing > 0 ? (
+        <Pressable
+          accessibilityRole="button"
+          onPress={() => void addMissingToWishlist(completion.missing_card_ids)}
+          style={[styles.batch, { borderColor: c.primary }]}
+        >
+          <Text style={{ color: c.primary, fontWeight: '700', fontSize: 13 }}>
+            Adicionar {missing} faltante{missing === 1 ? '' : 's'} à wishlist
+          </Text>
+        </Pressable>
+      ) : null}
     </View>
   );
 }
@@ -226,6 +239,7 @@ const styles = StyleSheet.create({
   badgeText: { color: '#fff', fontSize: 11, fontWeight: '800' },
   number: { fontSize: 11, textAlign: 'center' },
   completion: { padding: 12, borderRadius: 12, borderWidth: 1, gap: 8, marginBottom: 4 },
+  batch: { paddingVertical: 9, borderRadius: 8, borderWidth: 1, alignItems: 'center' },
   completionRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
   completionText: { fontSize: 15, fontWeight: '700' },
   bar: { height: 6, borderRadius: 3, overflow: 'hidden' },

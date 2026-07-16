@@ -26,6 +26,9 @@ export default function Home() {
             <Link href="/explore" style={[styles.link, { color: c.primary }]}>
               Explorar catálogo →
             </Link>
+            <Link href="/wishlists" style={[styles.link, { color: c.primary }]}>
+              Minhas wishlists →
+            </Link>
             <Link href="/settings/visibility" style={[styles.link, { color: c.primary }]}>
               Visibilidade e link público →
             </Link>

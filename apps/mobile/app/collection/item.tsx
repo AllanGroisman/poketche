@@ -26,6 +26,7 @@ import {
   type Language,
   type Variant,
 } from '@/features/collection/api';
+import { promptWishlistRemoval } from '@/features/wishlist/removal-prompt';
 
 export default function ItemScreen() {
   const params = useLocalSearchParams<{
@@ -43,7 +44,13 @@ export default function ItemScreen() {
       <ItemForm
         cardName={params.cardName ?? 'Carta'}
         cardImage={params.cardImage}
-        onSubmit={(v) => addItem({ card_id: params.cardId!, ...v })}
+        onSubmit={async (v) => {
+          const res = await addItem({ card_id: params.cardId!, ...v });
+          // Carta em wishlist: pergunta (ou avisa, se a auto-remoção estiver ligada) — FR-052.
+          // O prompt sobe depois do `router.back()` do formulário, sobre a tela de origem.
+          promptWishlistRemoval(res.wishlist_matches, res.wishlist_auto_removed);
+          return res;
+        }}
       />
     </FormShell>
   );

@@ -9,13 +9,15 @@ import { runImageBackfill } from './image-backfill.js';
 import { runPriceRefresh, tierWhere } from './price-refresh.js';
 import { runPriceSnapshot } from './price-snapshot.js';
 import { runCollectionValueSnapshot } from './collection-value-snapshot.js';
+import { runWishlistAlerts } from './wishlist-alerts.js';
+import { createPushProvider } from '../integrations/push/index.js';
 
 /**
  * Runner de jobs agendados (pg_boss sobre Postgres, no mesmo processo da API — sem
  * microserviços). Os handlers concretos são adicionados nas fases correspondentes:
  *   catalog-sync (T017), image-backfill (T018), price-refresh/price-snapshot (T038),
  *   collection-value-snapshot (T046), wishlist-alerts (T063),
- *   order-deadlines / payments-reconciliation (T086).
+ *   order-deadlines / payments-reconciliation (T086 — US6).
  */
 export const JOB_NAMES = [
   'catalog-sync',
@@ -78,6 +80,19 @@ export async function startJobs(config: AppConfig): Promise<PgBoss> {
     await runCollectionValueSnapshot({ prisma, logger });
   });
   await boss.schedule('collection-value-snapshot', '0 6 * * *'); // 06:00 diário, após o snapshot
+
+  // wishlist-alerts (T063): avalia os preços-alvo do ciclo e notifica (FR-046/047).
+  await boss.work('wishlist-alerts', async () => {
+    await runWishlistAlerts({
+      prisma,
+      push: createPushProvider(config, logger),
+      minIntervalMs: config.WISHLIST_ALERT_MIN_INTERVAL_HOURS * 60 * 60 * 1000,
+      logger,
+    });
+  });
+  // 05:45 — depois do price-refresh (05:00), que é o "evento" que os alvos enfrentam. Não
+  // espera o collection-value-snapshot (06:00): são independentes, e adiar só atrasaria o push.
+  await boss.schedule('wishlist-alerts', '45 5 * * *');
 
   return boss;
 }
