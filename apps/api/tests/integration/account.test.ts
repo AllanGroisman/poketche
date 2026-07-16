@@ -112,7 +112,8 @@ describe('US1 — contas, visibilidade e link público', () => {
     const body = res.json();
     expect(body.owner.display_name).toBe('Ash Ketchum');
     expect(body.visibility).toMatchObject({ show_values: true, show_quantities: true });
-    expect(body.collection).toEqual([]);
+    // Coleção vazia; a matriz de visibilidade do conteúdo é coberta pela US7 (T053).
+    expect(body.items).toEqual([]);
   });
 
   it('revoga o link e o token deixa de resolver (404 opaco, SC-012)', async () => {

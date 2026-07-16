@@ -77,6 +77,24 @@ transações, comissões — e contratos de adapters externos) e nos fluxos de i
 > estatísticas, 9 de integração incluindo o job de snapshot). Nota: distribuição por tipo conta
 > a carta em cada tipo (grupos sobrepostos, não somam ao total). US7/US10 (resto do P3) não
 > iniciadas.
+>
+> **US7 — Visitante não autenticado (2026-07-16, checkpoint)**: T050–T053 completas e validadas —
+> visão pública da coleção por share link respeitando os três flags do dono, com estatísticas
+> básicas independentes da lista (o dono pode ocultar as cartas e ainda compartilhar o tamanho),
+> 404 opaco na revogação/privacidade e `no-store` (visibilidade vale imediatamente, FR-003a).
+> Duas decisões de vazamento: `position_value_cents` só sai com valores **e** quantidades
+> autorizados (valor ÷ preço revelaria a quantidade), e o total agregado continua permitido só
+> com valores (não revela carta nenhuma). Preço de aquisição e id do item nunca saem. Mobile:
+> tela somente leitura por deep link (`poketche://public/<token>`), gate do `_layout.tsx`
+> liberando o grupo `public`, e `auth-guard` conduzindo a ação restrita ao cadastro com retorno
+> ao contexto. **137 testes passando** (+9 de integração: matriz de visibilidade + revogação).
+>
+> **Ambiente (2026-07-16)**: máquina nova — Docker Desktop instalado, `pnpm` só via `corepack
+> pnpm` (não está no PATH). O `prettier --check` acusa ~93 arquivos por CRLF (`core.autocrlf=
+> true` sem `.gitattributes`, e `endOfLine: "lf"` no default): é artefato de checkout no
+> Windows, não formatação — o conteúdo no repo é LF. Considerar um `.gitattributes` (T098/T102).
+> Atenção: o banco de teste é `tmpfs` — recriado a cada `docker compose up`, exige
+> `prisma migrate deploy` + `prisma/manual/0001_constraints.sql` na :5435 outra vez.
 
 ## Phase 1: Setup (Shared Infrastructure)
 
@@ -206,10 +224,10 @@ transações, comissões — e contratos de adapters externos) e nos fluxos de i
 
 **Independent Test**: abrir link sem sessão → visão conforme configuração do dono; revogado → 404 opaco; ação restrita → cadastro → retorno
 
-- [ ] T050 [US7] Endpoint 🔓 GET `/public/collections/:shareToken` aplicando show_cards/values/quantities; 404 opaco quando revogado/privado (apps/api/src/modules/collection/public.ts)
-- [ ] T051 [US7] Mobile: tela pública somente leitura + deep link do share link (apps/mobile/app/public/[shareToken].tsx)
-- [ ] T052 [US7] Mobile: guard de navegação — ação restrita sem sessão → cadastro/login → retorno ao ponto de origem (apps/mobile/src/services/auth-guard.ts)
-- [ ] T053 [US7] Teste de integração: matriz de visibilidade + revogação (apps/api/tests/integration/public-collection.test.ts)
+- [x] T050 [US7] Endpoint 🔓 GET `/public/collections/:shareToken` aplicando show_cards/values/quantities; 404 opaco quando revogado/privado (apps/api/src/modules/collection/public.ts) — o resolvedor semente saiu de `account/visibility.ts`; `Cache-Control: no-store` (mudança de visibilidade vale imediatamente); `position_value_cents` exige valores **e** quantidades (o valor revelaria a quantidade oculta)
+- [x] T051 [US7] Mobile: tela pública somente leitura + deep link do share link (apps/mobile/app/public/[shareToken].tsx, src/features/public/api.ts) — a tela não decide o que esconder: renderiza o que a API mandou
+- [x] T052 [US7] Mobile: guard de navegação — ação restrita sem sessão → cadastro/login → retorno ao ponto de origem (apps/mobile/src/services/auth-guard.ts) — retorno guardado em memória e consumido pelo gate do `_layout.tsx`, que passou a liberar as rotas do grupo `public`
+- [x] T053 [US7] Teste de integração: matriz de visibilidade + revogação (apps/api/tests/integration/public-collection.test.ts — 9 casos)
 
 **Checkpoint**: compartilhamento público seguro
 

@@ -1,13 +1,12 @@
 import type { FastifyInstance } from 'fastify';
 import type { CollectionVisibility, PrismaClient } from '@prisma/client';
 import { z } from 'zod';
-import { notFound } from '../../lib/errors.js';
 import { ensureProfile, generateShareToken } from './service.js';
 
 /**
  * Visibilidade da coleção e link público compartilhável (T023, FR-003/003a/b/c).
- * Privada por padrão; o link usa um token opaco não adivinhável. Inclui um resolvedor
- * público mínimo (semente da US7) para validar que o link abre e que a revogação → 404.
+ * Privada por padrão; o link usa um token opaco não adivinhável. O resolvedor público do
+ * link vive em `collection/public.ts` (US7), junto do conteúdo que ele expõe.
  */
 
 export interface VisibilityDeps {
@@ -78,25 +77,5 @@ export function registerVisibilityRoutes(app: FastifyInstance, deps: VisibilityD
       data,
     });
     return serialize(v, shareLinkBaseUrl);
-  });
-
-  // Resolvedor público (🔓, sem auth). 404 opaco quando o token não existe, foi revogado
-  // ou a coleção não é pública (FR-003b/c, SC-012). Conteúdo da coleção chega na US2/US7.
-  app.get('/public/collections/:shareToken', async (req) => {
-    const { shareToken } = req.params as { shareToken: string };
-    const v = await prisma.collectionVisibility.findFirst({
-      where: { shareToken, status: 'public_link' },
-      include: { user: { select: { displayName: true } } },
-    });
-    if (!v) throw notFound('coleção não encontrada');
-    return {
-      owner: { display_name: v.user.displayName },
-      visibility: {
-        show_cards: v.showCards,
-        show_values: v.showValues,
-        show_quantities: v.showQuantities,
-      },
-      collection: [] as unknown[], // itens entram na US2; visão pública completa na US7
-    };
   });
 }

@@ -51,7 +51,7 @@ const listSchema = z.object({
   sort: z.enum(['recent', 'oldest']).default('recent'),
 });
 
-type ItemWithCard = Prisma.CollectionItemGetPayload<{
+export type ItemWithCard = Prisma.CollectionItemGetPayload<{
   include: {
     card: {
       include: {
@@ -94,7 +94,8 @@ function serialize(item: ItemWithCard, prices?: PriceLike[], snapshots?: Snapsho
   };
 }
 
-const includeCard = {
+/** Include compartilhado com a visão pública (US7) — mantém os dois payloads sem drift. */
+export const includeCard = {
   card: {
     include: {
       set: { select: { externalId: true, name: true } },

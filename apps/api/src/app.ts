@@ -8,6 +8,7 @@ import { registerCatalogSearch } from './modules/catalog/search.js';
 import { registerCatalogPriceHistory } from './modules/catalog/price-history.js';
 import { registerCollection } from './modules/collection/routes.js';
 import { registerCollectionDetails } from './modules/collection/details.js';
+import { registerCollectionPublic } from './modules/collection/public.js';
 import { registerStats } from './modules/stats/routes.js';
 import { registerAccount } from './modules/account/index.js';
 import { createImageStore } from './integrations/storage/r2.js';
@@ -49,6 +50,7 @@ export async function buildApp(
       registerCatalogPriceHistory(scope, prisma);
       registerCollection(scope, prisma);
       registerCollectionDetails(scope, prisma);
+      registerCollectionPublic(scope, prisma);
       registerStats(scope, prisma);
       registerAccount(scope, {
         prisma,
