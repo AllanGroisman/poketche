@@ -12,6 +12,14 @@ import { SOURCE_RANK } from './current.js';
 
 const DAY_MS = 86_400_000;
 
+/**
+ * Teto de leitura de snapshots (1 ponto/dia por carta): cobre o período `all` e a referência
+ * das janelas fixas sem varrer a tabela inteira. Compartilhado por todas as leituras de
+ * histórico — janelas menores por rota produziriam variações `null` falsas (a referência
+ * existe, mas ficou fora da leitura).
+ */
+export const MAX_HISTORY_WINDOW_DAYS = 400;
+
 export interface SnapshotLike {
   condition: Condition | null;
   variant: Variant;

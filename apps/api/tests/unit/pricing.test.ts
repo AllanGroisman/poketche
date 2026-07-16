@@ -15,7 +15,11 @@ import type {
   PriceProvider,
   PriceQuote,
 } from '../../src/integrations/pricing/types.js';
-import { selectCurrentPrice, serializePrice } from '../../src/modules/pricing/current.js';
+import {
+  selectCardMarketPrice,
+  selectCurrentPrice,
+  serializePrice,
+} from '../../src/modules/pricing/current.js';
 import type { PriceLike } from '../../src/modules/pricing/current.js';
 
 /**
@@ -245,5 +249,58 @@ describe('selectCurrentPrice / serializePrice', () => {
       fx_rate: null,
     });
     expect(serializePrice(null)).toBeNull();
+  });
+});
+
+/** Referência de mercado por carta (US10/T054, FR-070) — catálogo não tem contexto de item. */
+describe('selectCardMarketPrice', () => {
+  const at = new Date('2026-07-16T00:00:00Z');
+  const price = (over: Partial<PriceLike>): PriceLike => ({
+    condition: null,
+    variant: 'normal',
+    priceCents: 1000,
+    source: 'intl_usd_fx',
+    fxRate: null,
+    fetchedAt: at,
+    ...over,
+  });
+
+  it('sem cotação nenhuma devolve null', () => {
+    expect(selectCardMarketPrice([])).toBeNull();
+  });
+
+  it('prefere a variante normal quando disponível', () => {
+    const normal = price({ variant: 'normal', priceCents: 500 });
+    const holo = price({ variant: 'holo', priceCents: 9000 });
+    expect(selectCardMarketPrice([holo, normal])).toBe(normal);
+  });
+
+  it('cai para holo e depois reverse foil quando não há normal', () => {
+    const holo = price({ variant: 'holo', priceCents: 9000 });
+    const reverse = price({ variant: 'reverse_foil', priceCents: 700 });
+    expect(selectCardMarketPrice([reverse, holo])).toBe(holo);
+    expect(selectCardMarketPrice([reverse])).toBe(reverse);
+  });
+
+  it('prefere a fonte primária BR sobre o fallback internacional', () => {
+    const intl = price({ source: 'intl_usd_fx' });
+    const liga = price({ source: 'liga_pokemon', condition: 'near_mint' });
+    expect(selectCardMarketPrice([intl, liga])).toBe(liga);
+  });
+
+  it('dentro da fonte, prefere a cotação genérica (sem condição) e depois near mint', () => {
+    const generic = price({ source: 'liga_pokemon', condition: null });
+    const nearMint = price({ source: 'liga_pokemon', condition: 'near_mint' });
+    const played = price({ source: 'liga_pokemon', condition: 'played' });
+    expect(selectCardMarketPrice([played, nearMint, generic])).toBe(generic);
+    expect(selectCardMarketPrice([played, nearMint])).toBe(nearMint);
+  });
+
+  it('a variante escolhida vence a fonte: normal internacional antes de holo da Liga', () => {
+    // A referência é a carta na variante mais negociada; comparar preços de variantes
+    // diferentes seria comparar produtos diferentes.
+    const normalIntl = price({ variant: 'normal', source: 'intl_usd_fx' });
+    const holoLiga = price({ variant: 'holo', source: 'liga_pokemon' });
+    expect(selectCardMarketPrice([holoLiga, normalIntl])).toBe(normalIntl);
   });
 });

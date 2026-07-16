@@ -6,7 +6,7 @@ import { useSession } from '@/features/account/useSession';
 import { takePendingReturn } from '@/services/auth-guard';
 
 /** Rotas de visitante, acessíveis sem sessão (US7/US10, FR-003b/FR-068). */
-const PUBLIC_SEGMENTS = ['public'];
+const PUBLIC_SEGMENTS = ['public', 'explore'];
 
 /**
  * Layout raiz com gate de autenticação (US1): sem sessão → grupo (auth), exceto nas rotas

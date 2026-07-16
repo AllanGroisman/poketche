@@ -6,6 +6,8 @@ import { registerAuth, type AuthVerifier } from './modules/auth/plugin.js';
 import { registerCatalogImages } from './modules/catalog/images.js';
 import { registerCatalogSearch } from './modules/catalog/search.js';
 import { registerCatalogPriceHistory } from './modules/catalog/price-history.js';
+import { registerCatalogExplorer } from './modules/catalog/explorer.js';
+import { registerCatalogCompletion } from './modules/catalog/completion.js';
 import { registerCollection } from './modules/collection/routes.js';
 import { registerCollectionDetails } from './modules/collection/details.js';
 import { registerCollectionPublic } from './modules/collection/public.js';
@@ -48,6 +50,8 @@ export async function buildApp(
       await registerCatalogImages(scope, { prisma, store: imageStore });
       registerCatalogSearch(scope, prisma);
       registerCatalogPriceHistory(scope, prisma);
+      registerCatalogExplorer(scope, prisma);
+      registerCatalogCompletion(scope, prisma);
       registerCollection(scope, prisma);
       registerCollectionDetails(scope, prisma);
       registerCollectionPublic(scope, prisma);

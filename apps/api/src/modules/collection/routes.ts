@@ -49,6 +49,8 @@ const patchSchema = z
 
 const listSchema = z.object({
   sort: z.enum(['recent', 'oldest']).default('recent'),
+  /** Posse de uma carta específica — indicador do detalhe do catálogo (US10, FR-071). */
+  card_id: z.string().uuid().optional(),
 });
 
 export type ItemWithCard = Prisma.CollectionItemGetPayload<{
@@ -106,9 +108,9 @@ export const includeCard = {
 
 export function registerCollection(app: FastifyInstance, prisma: PrismaClient): void {
   app.get('/collection', { preHandler: app.requireAuth }, async (req) => {
-    const { sort } = listSchema.parse(req.query);
+    const { sort, card_id } = listSchema.parse(req.query);
     const items = await prisma.collectionItem.findMany({
-      where: { userId: req.user!.id },
+      where: { userId: req.user!.id, ...(card_id ? { cardId: card_id } : {}) },
       include: includeCard,
       orderBy: { addedAt: sort === 'recent' ? 'desc' : 'asc' },
     });

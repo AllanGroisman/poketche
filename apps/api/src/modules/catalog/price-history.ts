@@ -6,6 +6,7 @@ import {
   buildCardSeries,
   computeVariation,
   highLow,
+  MAX_HISTORY_WINDOW_DAYS,
   sliceByPeriod,
   type PeriodVariation,
   type PricePoint,
@@ -22,9 +23,6 @@ const PERIOD_DAYS: Record<string, number | null> = { '7d': 7, '30d': 30, '90d': 
 const querySchema = z.object({
   period: z.enum(['7d', '30d', '90d', 'all']).default('30d'),
 });
-
-// Teto de segurança da leitura (1 ponto/dia por carta): cobre 'all' sem varrer sem limite.
-const MAX_WINDOW_DAYS = 400;
 
 function serializeSeries(points: PricePoint[]): { t: string; price_cents: number }[] {
   return points.map((p) => ({ t: p.t.toISOString(), price_cents: p.priceCents }));
@@ -58,7 +56,7 @@ export function registerCatalogPriceHistory(app: FastifyInstance, prisma: Prisma
     const card = await prisma.card.findUnique({ where: { id }, select: { id: true } });
     if (!card) throw notFound('carta não encontrada');
 
-    const since = new Date(Date.now() - MAX_WINDOW_DAYS * 86_400_000);
+    const since = new Date(Date.now() - MAX_HISTORY_WINDOW_DAYS * 86_400_000);
     const snapshots = await prisma.cardPriceSnapshot.findMany({
       where: { cardId: id, fetchedAt: { gte: since } },
       select: { condition: true, variant: true, priceCents: true, source: true, fetchedAt: true },

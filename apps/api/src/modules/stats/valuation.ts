@@ -249,6 +249,14 @@ export interface CompletionEntry {
   pct: number;
 }
 
+/**
+ * Percentual de completude (0–100, 1 casa). Compartilhado com a visão navegável por edição do
+ * explorador (US10, FR-072) — a mesma carta não pode valer percentuais diferentes em duas telas.
+ */
+export function completionPct(owned: number, total: number): number {
+  return total > 0 ? Math.round((owned / total) * 1000) / 10 : 0;
+}
+
 /** Completude por edição (FR-020): cartas distintas possuídas vs. total da edição. */
 export function completion(items: StatItem[]): CompletionEntry[] {
   const bySet = new Map<string, { name: string; total: number; cards: Set<string> }>();
@@ -268,7 +276,7 @@ export function completion(items: StatItem[]): CompletionEntry[] {
       set_name: entry.name,
       owned: entry.cards.size,
       total: entry.total,
-      pct: entry.total > 0 ? Math.round((entry.cards.size / entry.total) * 1000) / 10 : 0,
+      pct: completionPct(entry.cards.size, entry.total),
     }))
     .sort((a, b) => b.pct - a.pct || b.owned - a.owned);
 }

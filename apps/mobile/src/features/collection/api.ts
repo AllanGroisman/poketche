@@ -108,9 +108,10 @@ export const searchCards = (q: string, lang: Language = 'pt') =>
     query: { q, lang },
   });
 
-export const getCollection = (sort: 'recent' | 'oldest' = 'recent') =>
+/** `cardId` filtra a posse de uma carta — indicador do detalhe do catálogo (US10, FR-071). */
+export const getCollection = (sort: 'recent' | 'oldest' = 'recent', cardId?: string) =>
   apiRequest<{ items: CollectionItem[]; summary: CollectionSummary }>('/collection', {
-    query: { sort },
+    query: { sort, card_id: cardId },
   });
 
 export const addItem = (body: AddItemInput) =>

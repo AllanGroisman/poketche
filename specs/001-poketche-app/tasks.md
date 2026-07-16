@@ -89,12 +89,30 @@ transações, comissões — e contratos de adapters externos) e nos fluxos de i
 > liberando o grupo `public`, e `auth-guard` conduzindo a ação restrita ao cadastro com retorno
 > ao contexto. **137 testes passando** (+9 de integração: matriz de visibilidade + revogação).
 >
+> **US10 — Explorador de catálogo (2026-07-16, checkpoint)**: T054–T059 completas e validadas —
+> edições → grade → detalhe sem conta (SC-020), com `Cache-Control` + `ETag`/304 (`catalog/
+> cache.ts`), busca com filtros combináveis dentro do SQL que ordena, completude navegável por
+> edição e ações rápidas para autenticados. Decisão estrutural que amarra a US10 inteira:
+> **nada por usuário entra em payload cacheável** — posse/completude são rotas autenticadas sem
+> cache, e o app compõe as duas fontes na tela. Três bugs latentes corrigidos de passagem: o
+> filtro `set` da busca encolhia a página (filtrava o top-N já ranqueado); a grade ordenaria
+> "10" antes de "2" (`card.number` é texto → índice por expressão no `0002_catalog_indexes.sql`);
+> e o ETag do detalhe ignoraria o `price-refresh` se olhasse só o `synced_at`. **163 testes
+> passando** (+26: 20 de integração do explorador, 6 unit de `selectCardMarketPrice`).
+> **Pendências da US10**: o atalho em lote p/ wishlist (FR-072) e a ação rápida "adicionar à
+> wishlist" (FR-071) dependem da **US9**; `/catalog/cards/:id/listings` responde `[]` até a
+> **US6**. Desvio de contrato registrado: a posse do detalhe vem de `GET /collection?card_id=`
+> (o contrato cita `/collection/items?card_id=`, rota que não existe — GET é `/collection`).
+>
 > **Ambiente (2026-07-16)**: máquina nova — Docker Desktop instalado, `pnpm` só via `corepack
 > pnpm` (não está no PATH). O `prettier --check` acusa ~93 arquivos por CRLF (`core.autocrlf=
 > true` sem `.gitattributes`, e `endOfLine: "lf"` no default): é artefato de checkout no
 > Windows, não formatação — o conteúdo no repo é LF. Considerar um `.gitattributes` (T098/T102).
 > Atenção: o banco de teste é `tmpfs` — recriado a cada `docker compose up`, exige
-> `prisma migrate deploy` + `prisma/manual/0001_constraints.sql` na :5435 outra vez.
+> `prisma migrate deploy` + `prisma/manual/{0001_constraints,0002_catalog_indexes}.sql` na :5435
+> outra vez. As suítes de integração rodam **em paralelo contra o mesmo banco**: fixtures novas
+> precisam de nomes de carta exclusivos (a busca ranqueia sobre todas as traduções) e asserções
+> de ETag devem usar recursos que só a própria suíte toca.
 
 ## Phase 1: Setup (Shared Infrastructure)
 
@@ -239,12 +257,12 @@ transações, comissões — e contratos de adapters externos) e nos fluxos de i
 
 **Independent Test**: sem conta, edições → grade → detalhe com preço/histórico em ≤3 toques; com conta, posse/ações rápidas/completude
 
-- [ ] T054 [P] [US10] Endpoints 🔓 `/catalog/sets`, `/catalog/sets/:id/cards` (paginado), `/catalog/cards/:id` — todos com Cache-Control + ETag invalidados pelo sync (apps/api/src/modules/catalog/explorer.ts)
-- [ ] T055 [P] [US10] Estender GET `/catalog/cards` com filtros edição/raridade/tipo/faixa de preço (sem cotação fora do filtro com indicação) + índices de apoio (apps/api/src/modules/catalog/search.ts, migration de índices)
-- [ ] T056 [US10] Endpoints autenticados: `/catalog/sets/:id/completion` (possuídas/faltantes + atalho lote wishlist) e `/catalog/cards/:id/listings` — posse fora dos payloads cacheáveis (apps/api/src/modules/catalog/completion.ts)
-- [ ] T057 [US10] Mobile: telas do explorador — lista de edições (logo/data/total), grade progressiva, detalhe público (apps/mobile/app/explore/, src/features/catalog/)
-- [ ] T058 [US10] Mobile: indicador de posse + ações rápidas + visão de completude com atalho p/ wishlist (apps/mobile/src/features/catalog/completion/)
-- [ ] T059 [US10] Teste de integração: busca com filtros <1s, cache ETag, visitante sem dados de posse (apps/api/tests/integration/explorer.test.ts)
+- [x] T054 [P] [US10] Endpoints 🔓 `/catalog/sets`, `/catalog/sets/:id/cards` (paginado), `/catalog/cards/:id` — todos com Cache-Control + ETag invalidados pelo sync (apps/api/src/modules/catalog/explorer.ts) · helper novo em `catalog/cache.ts` (ETag fraco sobre o `MAX(synced_at)` das linhas da resposta + 304 no `If-None-Match`); o ETag do **detalhe** também dobra `card_price.fetched_at`, senão o price-refresh mudaria o corpo sem mexer no `synced_at`; `:id` de edição aceita uuid **e** external_id
+- [x] T055 [P] [US10] Estender GET `/catalog/cards` com filtros edição/raridade/tipo/faixa de preço (sem cotação fora do filtro com indicação) + índices de apoio (apps/api/src/modules/catalog/search.ts, prisma/manual/0002_catalog_indexes.sql) — **filtros movidos para dentro do SQL que ordena** (antes o `set` filtrava o top-N já ranqueado e encolhia a página); `q` virou opcional (navegar só com filtros); `unpriced_excluded` conta as cartas que o filtro de preço deixou de fora (FR-069); query inválida agora é **400**, não `{results:[]}` com 200
+- [x] T056 [US10] Endpoints autenticados: `/catalog/sets/:id/completion` (possuídas/faltantes + atalho lote wishlist) e `/catalog/cards/:id/listings` — posse fora dos payloads cacheáveis (apps/api/src/modules/catalog/completion.ts) · `pct` extraído para `stats/valuation.completionPct` e compartilhado com o dashboard; `/listings` é 🔓 (contrato) e responde `[]` até a US6; **o atalho em lote p/ wishlist depende da US9** — a API já devolve `missing_card_ids` para habilitá-lo
+- [x] T057 [US10] Mobile: telas do explorador — lista de edições (logo/data/total), grade progressiva, detalhe público (apps/mobile/app/explore/{index,set,card}.tsx, src/features/catalog/api.ts) — rotas planas com params, seguindo a convenção do app
+- [x] T058 [US10] Mobile: indicador de posse + ações rápidas + visão de completude com atalho p/ wishlist (apps/mobile/app/explore/set.tsx, card.tsx) — posse e grade são **compostas no cliente** (a grade cacheada serve a todos); filtro "ver faltantes" na grade; ação restrita passa pelo `auth-guard`. **Ação "adicionar à wishlist" pendente da US9**
+- [x] T059 [US10] Teste de integração: busca com filtros <1s, cache ETag, visitante sem dados de posse (apps/api/tests/integration/explorer.test.ts — 20 casos) + 6 unit de `selectCardMarketPrice`
 
 **Checkpoint**: descoberta pública completa
 

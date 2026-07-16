@@ -23,6 +23,9 @@ export default function Home() {
             <Link href="/dashboard" style={[styles.link, { color: c.primary }]}>
               Estatísticas da coleção →
             </Link>
+            <Link href="/explore" style={[styles.link, { color: c.primary }]}>
+              Explorar catálogo →
+            </Link>
             <Link href="/settings/visibility" style={[styles.link, { color: c.primary }]}>
               Visibilidade e link público →
             </Link>

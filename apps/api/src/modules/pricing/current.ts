@@ -53,3 +53,31 @@ export function serializePrice(price: PriceLike | null): SerializedPrice | null 
     fx_rate: price.fxRate == null ? null : Number(price.fxRate),
   };
 }
+
+/** Variante de referência de mercado, na ordem em que a carta costuma ser negociada. */
+const VARIANT_PREFERENCE: Variant[] = ['normal', 'holo', 'reverse_foil'];
+
+/**
+ * Cotação de referência de mercado de uma **carta**, sem contexto de item (US10, FR-070): o
+ * catálogo mostra a carta, não uma posse — não há condição/variante para casar. Regras:
+ *   - variante: a mais próxima do padrão de negociação entre as disponíveis (normal → holo →
+ *     reverse foil), coerente com a série de referência do histórico (`buildCardSeries`);
+ *   - fonte: primária BR antes do fallback internacional (mesma regra do item);
+ *   - condição: preferir a cotação **sem condição** (preço de mercado genérico da fonte); entre
+ *     cotações com condição, a melhor conservada — é a referência usual de catálogo.
+ * O chamador deve exibir `condition`/`variant` junto do preço: sem o contexto do item, o número
+ * sozinho seria ambíguo. Função pura — coberta pelos testes de dinheiro (constituição I).
+ */
+export function selectCardMarketPrice(prices: PriceLike[]): PriceLike | null {
+  if (prices.length === 0) return null;
+  const variant = VARIANT_PREFERENCE.find((v) => prices.some((p) => p.variant === v));
+  if (!variant) return null;
+  const candidates = prices.filter((p) => p.variant === variant);
+  const condRank = (c: Condition | null) => (c === null ? 0 : c === 'near_mint' ? 1 : 2);
+  candidates.sort((a, b) => {
+    const src = SOURCE_RANK[a.source] - SOURCE_RANK[b.source];
+    if (src !== 0) return src;
+    return condRank(a.condition) - condRank(b.condition);
+  });
+  return candidates[0] ?? null;
+}
