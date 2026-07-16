@@ -91,7 +91,7 @@ transações, comissões — e contratos de adapters externos) e nos fluxos de i
 >
 > **US10 — Explorador de catálogo (2026-07-16, checkpoint)**: T054–T059 completas e validadas —
 > edições → grade → detalhe sem conta (SC-020), com `Cache-Control` + `ETag`/304 (`catalog/
-> cache.ts`), busca com filtros combináveis dentro do SQL que ordena, completude navegável por
+cache.ts`), busca com filtros combináveis dentro do SQL que ordena, completude navegável por
 > edição e ações rápidas para autenticados. Decisão estrutural que amarra a US10 inteira:
 > **nada por usuário entra em payload cacheável** — posse/completude são rotas autenticadas sem
 > cache, e o app compõe as duas fontes na tela. Três bugs latentes corrigidos de passagem: o
@@ -143,8 +143,8 @@ transações, comissões — e contratos de adapters externos) e nos fluxos de i
 > `EXPO_ACCESS_TOKEN`/projectId do EAS.
 >
 > **Ambiente (2026-07-16)**: máquina nova — Docker Desktop instalado, `pnpm` só via `corepack
-> pnpm` (não está no PATH). O `prettier --check` acusa ~93 arquivos por CRLF (`core.autocrlf=
-> true` sem `.gitattributes`, e `endOfLine: "lf"` no default): é artefato de checkout no
+pnpm` (não está no PATH). O `prettier --check` acusa ~93 arquivos por CRLF (`core.autocrlf=
+true` sem `.gitattributes`, e `endOfLine: "lf"` no default): é artefato de checkout no
 > Windows, não formatação — o conteúdo no repo é LF. Considerar um `.gitattributes` (T098/T102).
 > Atenção: o banco de teste é `tmpfs` — recriado a cada `docker compose up`, exige
 > `prisma migrate deploy` + `prisma/manual/{0001_constraints,0002_catalog_indexes}.sql` na :5435
@@ -329,11 +329,11 @@ transações, comissões — e contratos de adapters externos) e nos fluxos de i
 
 **Independent Test**: sessão com ~10 cartas PT/EN (foil, duplicata) em aparelho físico: ≥80% identificadas, captura ≤2s, idioma ≥90%, revisão obrigatória, sessão recuperável, vídeo só no aparelho
 
-- [ ] T066 [US5] 🚧 SPIKE (gate da story): comparativo do pipeline `CardIdentifier` — OCR on-device (ML Kit) vs. backend, com casos obrigatórios: promos fora do padrão NNN/MMM, layouts antigos, reverse foil; custo do índice on-device distribuído; registrar decisão em specs/001-poketche-app/research.md §3
-- [ ] T067 [P] [US5] Migrations `scan_session` + `scan_capture` (language_detected, variant, identification_method) (apps/api/src/db/migrations/)
+- [x] T066 [US5] ~~🚧 SPIKE (gate da story)~~ **RESOLVIDO** (2026-07-16, decisão do usuário registrada em research.md §3): alvo é o **híbrido** (ML Kit on-device → fallback backend); **o MVP entrega só a camada backend**, que é a própria camada de fallback do alvo. Índice de identificação distribuído **fora do MVP**. Motor de OCR: **tesseract.js self-hosted** (sem credencial, sem custo/captura) — precisão julgada no Independent Test da US5; se não bater SC-006, troca-se o motor (Google Cloud Vision) antes da via, via `CardIdentifier`. Fallback visual por phash fora desta rodada: os `candidates[]` de "a revisar" saem de busca trigram pelo nome (pg_trgm já existe). Decorrência: T070/FR-021 e T074 exigem vision-camera + módulo nativo → **migração do app de Expo Go para expo-dev-client + EAS** (ver T070)
+- [x] T067 [P] [US5] Migrations `scan_session` + `scan_capture` (language_detected, variant, identification_method) — **já contempladas na migration inicial**: `ScanSession`/`ScanCapture` e os enums `ScanSessionStatus`/`ScanCaptureStatus`/`IdentificationMethod`/`CameraPref` já estão em prisma/schema.prisma e em prisma/migrations/20260712221833_init/. Nenhuma migration nova. (o caminho `apps/api/src/db/migrations/` citado aqui nunca existiu — o projeto usa `apps/api/prisma/migrations/`)
 - [ ] T068 [US5] Interface `CardIdentifier` (`identify(crop) → {card, language, variant, confidence, candidates[], method}`) + implementação vencedora do spike, trocável (apps/api/src/modules/scanner/identifier/)
 - [ ] T069 [US5] Endpoints de sessão: criar (409 se pendente), capturas, PATCH/DELETE captura, summary, confirm (+wishlist_matches), discard, pending (apps/api/src/modules/scanner/routes.ts)
-- [ ] T070 [US5] Mobile: câmera vision-camera com detecção de retângulo em tempo real, molduras, captura automática com contador (apps/mobile/src/features/scanner/camera/)
+- [ ] T070 [US5] Mobile: câmera vision-camera com detecção de retângulo em tempo real, molduras, captura automática com contador (apps/mobile/src/features/scanner/camera/) — ⚠️ **exige migração de Expo Go → expo-dev-client + EAS** (vision-camera não existe no Expo Go e o expo-camera não tem frame processor): adicionar react-native-vision-camera + expo-dev-client, criar eas.json, declarar plugins/permissões no app.json. O primeiro build de dev client depende de `eas login` do usuário
 - [ ] T071 [US5] Mobile: feedback padrão vs. celebratório (raridade/valor/wishlist), sons toggleáveis, duplicata incrementa com indicação (apps/mobile/src/features/scanner/feedback.ts)
 - [ ] T072 [US5] Mobile: tela de revisão — resolver "a revisar" com candidatos, ajustar qty/condição/idioma/variante, resumo estatístico, confirmar/descartar (apps/mobile/src/features/scanner/review/)
 - [ ] T073 [US5] Mobile: sessão pendente única com recuperação na abertura do app (storage local + GET pending) (apps/mobile/src/services/scan-session-storage.ts)
@@ -351,7 +351,7 @@ transações, comissões — e contratos de adapters externos) e nos fluxos de i
 **Independent Test**: 3 usuários (2 vendedores KYC sandbox): carrinho com 2 vendedores → checkout → 2 pedidos → envio → recebimento → liberação por pedido; cancelar um pedido pago; disputa com reembolso
 
 - [ ] T076 [US6] 🚧 SPIKE (gate da story): custódia Pagar.me em sandbox — validações (a) retenção sem repasse, (b) liberação por comando, (c) reembolso pós-retenção, (d) prazos compatíveis, (e) frete no split (comissão só item), (f) cobrança única multi-recebedor + reembolso parcial por pedido; registrar em specs/001-poketche-app/research.md §4 (plano B: 1 cobrança por pedido ou Mercado Pago)
-- [ ] T077 [P] [US6] Migrations `user_address`, `listing` (frete + quantity_reserved/sold + CHECK), `cart_item`, `checkout`, `order`, `order_item`, `dispute`, `dispute_evidence`, `review` (apps/api/src/db/migrations/)
+- [ ] T077 [P] [US6] Migrations `user_address`, `listing` (frete + quantity_reserved/sold + CHECK), `cart_item`, `checkout`, `order`, `order_item`, `dispute`, `dispute_evidence`, `review` (apps/api/prisma/schema.prisma + prisma/migrations/; CHECKs em prisma/manual/, que o Prisma não expressa)
 - [ ] T078 [US6] Adapter `PaymentProvider` → Pagar.me: recipients/KYC real (completa T024), cobrança única com split multi-recebedor, liberação controlada, reembolso parcial — testes de contrato com sandbox/fixtures (apps/api/src/integrations/payments/pagarme/, tests/contract/pagarme.test.ts)
 - [ ] T079 [US6] Endpoints de anúncios: criar (KYC aprovado, 422 quantity > possuída), editar/desativar, busca 🔓 com filtros; regras de coleção (422 abaixo do comprometido, remoção desativa) nos endpoints de collection (apps/api/src/modules/marketplace/listings.ts)
 - [ ] T080 [P] [US6] Endpoints `/me/addresses` CRUD (apps/api/src/modules/account/addresses.ts)

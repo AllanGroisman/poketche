@@ -104,8 +104,41 @@ está estável, um still recortado alimenta o pipeline de **identificação em d
 sessões — trocar OCR↔matching, on-device↔backend ou fornecedor **não toca** sessões, molduras,
 feedbacks ou gravação (constituição V aplicada internamente).
 
-**[SPIKE — comparativo antes de fixar]** on-device vs. backend para cada etapa, medindo
-latência (SC-006a ≤ 2 s), custo, precisão (SC-006 ≥ 80%) e funcionamento offline:
+### Decisão do spike (2026-07-16) — resolvido
+
+**Alvo: híbrido** (ML Kit on-device tenta primeiro, backend como fallback). **MVP: só a camada
+backend** — que é exatamente a camada de fallback do alvo, e portanto não é trabalho descartado
+quando a on-device entrar. O **índice de identificação distribuído não entra no MVP**.
+
+**Motor de OCR no backend: tesseract.js self-hosted**, atrás do `CardIdentifier`.
+
+**Rationale**: o custo estrutural documentado abaixo (índice distribuído — geração, versionamento,
+download e compatibilidade no app) é o que separa as duas vias, e ele não se paga antes de existir
+um scanner funcionando de ponta a ponta para medir. O tesseract.js destrava a implementação sem
+credencial nem custo por captura; a precisão real só é conhecida no Independent Test da US5, e é
+justamente para isso que o `CardIdentifier` é trocável.
+
+**Reavaliar quando**: (a) o Independent Test da US5 não alcançar SC-006 (≥ 80%) ou SC-006a (≤ 2 s)
+— o caminho é trocar o motor (Google Cloud Vision) antes de trocar a via; (b) a latência de rede
+por captura incomodar no uso real, ou o custo/CPU do OCR no serviço da API pesar — aí a camada
+on-device passa a se pagar e o índice distribuído entra.
+
+**Fora do MVP, registrado como pendência**: o **fallback visual por phash**. Os `candidates[]` do
+"a revisar" (FR-023/FR-060) saem de busca trigram pelo nome lido — o `pg_trgm` já está no banco e a
+busca por nome em todos os idiomas já existe no catálogo, então a revisão fica coberta sem exigir
+hashes por tradução/variante. O phash entra junto com a camada on-device, se ela entrar.
+
+**Decorrência de stack (2026-07-16)**: o T070/FR-021 (molduras em tempo real) exige
+`react-native-vision-camera` com frame processor, e o T074 (gravação com overlays) exige módulo
+nativo — nada disso roda no Expo Go, que era o setup do app. Decidida a **migração para
+`expo-dev-client` + EAS**; o `expo-camera` sozinho não tem API de frame processing e limitaria o
+scanner a captura manual.
+
+---
+
+**[SPIKE — comparativo antes de fixar]** (histórico — a decisão acima o encerra) on-device vs.
+backend para cada etapa, medindo latência (SC-006a ≤ 2 s), custo, precisão (SC-006 ≥ 80%) e
+funcionamento offline:
 
 | Opção                                 | Prós                                                  | Contras                                                                                              |
 | ------------------------------------- | ----------------------------------------------------- | ---------------------------------------------------------------------------------------------------- |

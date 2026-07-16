@@ -6,6 +6,10 @@ allowBuilds:
   '@prisma/engines': true
   esbuild: true
   prisma: true
+  # O postinstall do tesseract.js é só `opencollective-postinstall` (banner de doação) — nada
+  # que o pacote precise para funcionar. Os dados de idioma são baixados em runtime, na primeira
+  # captura, não na instalação.
+  tesseract.js: false
 
 # Dependências autorizadas a rodar scripts de build (postinstall): Prisma baixa engines,
 # esbuild compila seu binário. Necessário para prisma generate e para o vitest/tsx.

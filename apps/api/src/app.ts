@@ -14,7 +14,9 @@ import { registerCollectionPublic } from './modules/collection/public.js';
 import { registerStats } from './modules/stats/routes.js';
 import { registerWishlists } from './modules/wishlist/routes.js';
 import { registerAccount } from './modules/account/index.js';
+import { registerScanner } from './modules/scanner/index.js';
 import { createImageStore } from './integrations/storage/r2.js';
+import { createCardIdentifier, type CardIdentifier } from './integrations/identifier/index.js';
 import { StubPaymentProvider } from './integrations/payments/provider.js';
 import { prisma as defaultPrisma } from './lib/prisma.js';
 
@@ -22,6 +24,8 @@ import { prisma as defaultPrisma } from './lib/prisma.js';
 export interface BuildAppOptions {
   prismaClient?: PrismaClient;
   authOverride?: AuthVerifier;
+  /** Testes injetam o `StubCardIdentifier` para controlar o que cada captura identifica. */
+  identifier?: CardIdentifier;
 }
 
 /**
@@ -36,6 +40,10 @@ export async function buildApp(
   const prisma = opts.prismaClient ?? defaultPrisma;
   const app = Fastify({
     logger: { level: config.NODE_ENV === 'development' ? 'info' : 'warn' },
+    // O crop do scanner viaja em base64 dentro do JSON (~4/3 do binário, mais o envelope), e o
+    // default de 1MB do Fastify rejeitaria antes de a rota poder responder o 400 explicativo.
+    // A validação de tamanho de verdade é por rota, contra SCANNER_MAX_CROP_KB.
+    bodyLimit: Math.ceil(config.SCANNER_MAX_CROP_KB * 1024 * 1.4) + 64 * 1024,
   });
 
   registerErrorHandler(app);
@@ -46,6 +54,7 @@ export async function buildApp(
   // Proxy de imagens do catálogo com cache R2 (T018) — público, sob /api/v1.
   const imageStore = createImageStore(config);
   const payments = new StubPaymentProvider();
+  const identifier = opts.identifier ?? createCardIdentifier(config, prisma, app.log);
   await app.register(
     async (scope) => {
       await registerCatalogImages(scope, { prisma, store: imageStore });
@@ -63,6 +72,7 @@ export async function buildApp(
         payments,
         shareLinkBaseUrl: config.SHARE_LINK_BASE_URL,
       });
+      registerScanner(scope, { prisma, identifier, maxCropKb: config.SCANNER_MAX_CROP_KB });
     },
     { prefix: '/api/v1' },
   );

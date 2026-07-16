@@ -47,6 +47,14 @@ const schema = z.object({
   // Wishlists (US9). Intervalo mínimo entre dois pushes da mesma carta (FR-047) — é uma
   // condição adicional ao rearme, nunca um gatilho por si (ver modules/wishlist/alerts.ts).
   WISHLIST_ALERT_MIN_INTERVAL_HOURS: z.coerce.number().positive().default(24),
+
+  // Scanner (US5). Confiança mínima para dar a carta por identificada; abaixo disso a captura
+  // entra como "a revisar" com candidatos (FR-023). A escala está em integrations/identifier/
+  // catalog-lookup.ts: acerto só por nome satura em 0.5, então o default de 0.6 exige que o
+  // número impresso também tenha casado.
+  SCANNER_CONFIDENCE_THRESHOLD: z.coerce.number().min(0).max(1).default(0.6),
+  // Teto do crop aceito por captura (FR-021/SC-006a) — o app manda a carta recortada, não a cena.
+  SCANNER_MAX_CROP_KB: z.coerce.number().int().positive().default(1024),
 });
 
 export type AppConfig = z.infer<typeof schema>;
