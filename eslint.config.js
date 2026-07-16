@@ -20,4 +20,10 @@ export default tseslint.config(
       '@typescript-eslint/no-unused-vars': ['warn', { argsIgnorePattern: '^_' }],
     },
   },
+  {
+    // O babel.config.js é CommonJS e roda no Node (build time), não no bundle do app — o
+    // formato é imposto pelo Babel, não é escolha nossa.
+    files: ['apps/mobile/babel.config.js'],
+    languageOptions: { sourceType: 'commonjs', globals: { module: 'writable' } },
+  },
 );

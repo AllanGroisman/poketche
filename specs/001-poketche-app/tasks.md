@@ -142,6 +142,48 @@ cache.ts`), busca com filtros combináveis dentro do SQL que ordena, completude 
 > o Expo (o provider de testes é noop) — exige **validação em aparelho físico** com
 > `EXPO_ACCESS_TOKEN`/projectId do EAS.
 >
+> **US5 — Scanner, Fase A: API (2026-07-16, checkpoint)**: **T066, T067, T068, T069 e T075
+> completas e validadas** — **265 testes passando** (205 antes; +32 integração do scanner, +19
+> parsing do OCR, +9 resumo da revisão), estável em execuções repetidas; `tsc`/`eslint` limpos
+> nos dois apps; `expo-doctor` 18/18.
+>
+> **T066 resolvido** (decisão do usuário, registrada em research.md §3): alvo é o pipeline
+> **híbrido** (ML Kit on-device → fallback backend), mas o **MVP entrega só a camada backend** —
+> que é a própria camada de fallback do alvo, então não é trabalho descartado. Índice de
+> identificação distribuído fora do MVP. Motor de OCR: **tesseract.js self-hosted**.
+>
+> **T067 já estava pronto**: `scan_session`/`scan_capture`, com `language_detected`, `variant` e
+> `identification_method`, já vieram na migration inicial. Nenhuma migration nova. O caminho
+> `apps/api/src/db/migrations/` citado no T067/T077 nunca existiu (é `apps/api/prisma/
+migrations/`) — corrigido nas duas tasks.
+>
+> Três decisões de desenho da Fase A: (1) **nome sozinho nunca identifica** — a confiança satura
+> em 0.5 sem o número impresso, abaixo do limiar de 0.6, então cai em "a revisar" com candidatos
+> (há dezenas de Pikachus no catálogo); (2) **sessão aberta nasce `pending`** e o estado `active`
+> do enum fica sem uso — distinguir "escaneando agora" de "interrompida" exigiria o app avisar o
+> servidor ao ser morto, que é exatamente o caso que o FR-059 precisa cobrir e o único em que
+> esse aviso não chega; (3) **fallback visual por phash fora desta rodada** — os candidatos saem
+> de busca trigram pelo nome lido (pg_trgm e a busca multilíngue já existem), cobrindo a revisão
+> sem hashes por tradução/variante. Pendência registrada: entra com a camada on-device.
+>
+> **Correção de spec**: FR-047 e o cenário 4 da US9 descreviam o intervalo mínimo como gatilho
+> paralelo ao rearme — leitura que mandaria um push por dia para carta parada abaixo do alvo, o
+> oposto do que o próprio FR-047 pede. A redação agora descreve o comportamento implementado.
+>
+> **US5 — Fase B: stack mobile (2026-07-16)**: o app era **Expo Go puro** e o T070/FR-021 exige
+> frame processor (`expo-camera` não tem). Migrado para **expo-dev-client + EAS**:
+> vision-camera 4.7.3 (a v5 exige a stack Nitro, incompatível com SDK 52/RN 0.76) +
+> worklets-core + `eas.json` + `babel.config.js` com o plugin dos frame processors (sem ele o
+> worklet compila como função JS comum e a detecção nunca roda). `expo-camera` **removido**: zero
+> imports no app e os dois plugins escreviam a mesma `NSCameraUsageDescription`. O `expo-doctor`
+> revelou que **`expo-linking`, `react-native-safe-area-context` e `react-native-screens`
+> faltavam** — o Expo Go os embutia, um dev client não: o app quebraria no primeiro build.
+> Instalados; `react-native` alinhado a 0.76.9. Permissão de microfone **não** pedida (o áudio da
+> gravação é do app, não do mic — decisão do spike do T074).
+>
+> ⛔ **BLOQUEADO em T070–T074**: o primeiro build de dev client exige `eas login` do usuário e um
+> aparelho físico. **A partir desta mudança o Expo Go não serve mais para este projeto.**
+>
 > **Ambiente (2026-07-16)**: máquina nova — Docker Desktop instalado, `pnpm` só via `corepack
 pnpm` (não está no PATH). O `prettier --check` acusa ~93 arquivos por CRLF (`core.autocrlf=
 true` sem `.gitattributes`, e `endOfLine: "lf"` no default): é artefato de checkout no
@@ -331,14 +373,14 @@ true` sem `.gitattributes`, e `endOfLine: "lf"` no default): é artefato de chec
 
 - [x] T066 [US5] ~~🚧 SPIKE (gate da story)~~ **RESOLVIDO** (2026-07-16, decisão do usuário registrada em research.md §3): alvo é o **híbrido** (ML Kit on-device → fallback backend); **o MVP entrega só a camada backend**, que é a própria camada de fallback do alvo. Índice de identificação distribuído **fora do MVP**. Motor de OCR: **tesseract.js self-hosted** (sem credencial, sem custo/captura) — precisão julgada no Independent Test da US5; se não bater SC-006, troca-se o motor (Google Cloud Vision) antes da via, via `CardIdentifier`. Fallback visual por phash fora desta rodada: os `candidates[]` de "a revisar" saem de busca trigram pelo nome (pg_trgm já existe). Decorrência: T070/FR-021 e T074 exigem vision-camera + módulo nativo → **migração do app de Expo Go para expo-dev-client + EAS** (ver T070)
 - [x] T067 [P] [US5] Migrations `scan_session` + `scan_capture` (language_detected, variant, identification_method) — **já contempladas na migration inicial**: `ScanSession`/`ScanCapture` e os enums `ScanSessionStatus`/`ScanCaptureStatus`/`IdentificationMethod`/`CameraPref` já estão em prisma/schema.prisma e em prisma/migrations/20260712221833_init/. Nenhuma migration nova. (o caminho `apps/api/src/db/migrations/` citado aqui nunca existiu — o projeto usa `apps/api/prisma/migrations/`)
-- [ ] T068 [US5] Interface `CardIdentifier` (`identify(crop) → {card, language, variant, confidence, candidates[], method}`) + implementação vencedora do spike, trocável (apps/api/src/modules/scanner/identifier/)
-- [ ] T069 [US5] Endpoints de sessão: criar (409 se pendente), capturas, PATCH/DELETE captura, summary, confirm (+wishlist_matches), discard, pending (apps/api/src/modules/scanner/routes.ts)
-- [ ] T070 [US5] Mobile: câmera vision-camera com detecção de retângulo em tempo real, molduras, captura automática com contador (apps/mobile/src/features/scanner/camera/) — ⚠️ **exige migração de Expo Go → expo-dev-client + EAS** (vision-camera não existe no Expo Go e o expo-camera não tem frame processor): adicionar react-native-vision-camera + expo-dev-client, criar eas.json, declarar plugins/permissões no app.json. O primeiro build de dev client depende de `eas login` do usuário
+- [x] T068 [US5] Interface `CardIdentifier` (`identify(crop) → {card, language, variant, confidence, candidates[], method}`) + implementação vencedora do spike, trocável (apps/api/src/integrations/identifier/ — no formato de 3 arquivos do integrations/push/, não em modules/, porque o motor de OCR é integração de terceiro: constituição V). OCR do crop inteiro (sem regiões fixas), parse de número sem assumir NNN/MMM, lookup `(set, number)` → senão trigram pelo nome; `createCardIdentifier` cai no `StubCardIdentifier` em NODE_ENV=test. Idioma indeterminado → `en` + `language_detected: false` (FR-067); variante sempre `normal` (o OCR não distingue reverse foil)
+- [x] T069 [US5] Endpoints de sessão: criar (409 se pendente), capturas, PATCH/DELETE captura, summary, confirm (+wishlist_matches), discard, pending (apps/api/src/modules/scanner/routes.ts) — rotas sob `/scan/sessions` conforme contracts/rest-api.md; +`POST /scan/sessions/:id/manual` (FR-056: adicionar carta não detectada). `confirm` é transacional e deduplica `cardId` antes do `resolveWishlistMatches`, senão a mesma carta reportaria o casamento duas vezes
+- [ ] T070 [US5] Mobile: câmera vision-camera com detecção de retângulo em tempo real, molduras, captura automática com contador (apps/mobile/src/features/scanner/camera/) — 🔓 **stack preparada** (vision-camera 4.7.3 + worklets-core + expo-dev-client + eas.json + babel plugin dos frame processors; expo-doctor 18/18). ⛔ **BLOQUEADO**: o primeiro build de dev client exige `eas login` do usuário e um aparelho físico — sem isso o app não roda mais (o Expo Go deixou de servir a partir desta mudança)
 - [ ] T071 [US5] Mobile: feedback padrão vs. celebratório (raridade/valor/wishlist), sons toggleáveis, duplicata incrementa com indicação (apps/mobile/src/features/scanner/feedback.ts)
 - [ ] T072 [US5] Mobile: tela de revisão — resolver "a revisar" com candidatos, ajustar qty/condição/idioma/variante, resumo estatístico, confirmar/descartar (apps/mobile/src/features/scanner/review/)
 - [ ] T073 [US5] Mobile: sessão pendente única com recuperação na abertura do app (storage local + GET pending) (apps/mobile/src/services/scan-session-storage.ts)
 - [ ] T074 [US5] Mobile: escolha de câmera lembrada + gravação local opt-in (tela com overlays/áudio), sem degradar detecção (desativar com aviso se sem capacidade), assistir/salvar/compartilhar/descartar + outro visual opcional; vídeo nunca sai do aparelho (apps/mobile/src/features/scanner/recording/)
-- [ ] T075 [US5] Testes de integração da API de sessões: fluxo capturas → revisão → confirm/discard, nada na coleção antes de confirmar (apps/api/tests/integration/scanner.test.ts)
+- [x] T075 [US5] Testes de integração da API de sessões: fluxo capturas → revisão → confirm/discard, nada na coleção antes de confirmar (apps/api/tests/integration/scanner.test.ts) — 32 testes, com `StubCardIdentifier` injetado; +19 unitários do parsing do OCR (casos obrigatórios do T066) e +9 do resumo da revisão
 
 **Checkpoint**: diferencial competitivo entregue sem bloquear nada
 

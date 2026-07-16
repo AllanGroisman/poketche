@@ -14,7 +14,17 @@
     "android": {
       "package": "com.poketche.app"
     },
-    "plugins": ["expo-router", "expo-camera", "expo-notifications"],
+    "plugins": [
+      "expo-router",
+      "expo-notifications",
+      [
+        "react-native-vision-camera",
+        {
+          "cameraPermissionText": "O PokeTche usa a câmera para escanear suas cartas e adicioná-las à coleção.",
+          "enableMicrophonePermission": false
+        }
+      ]
+    ],
     "extra": {
       "apiBaseUrl": "http://localhost:3000/api/v1",
       "supabaseUrl": "https://wdzdsujbhqwnxphlxvwe.supabase.co",
