@@ -181,8 +181,30 @@ migrations/`) — corrigido nas duas tasks.
 > Instalados; `react-native` alinhado a 0.76.9. Permissão de microfone **não** pedida (o áudio da
 > gravação é do app, não do mic — decisão do spike do T074).
 >
-> ⛔ **BLOQUEADO em T070–T074**: o primeiro build de dev client exige `eas login` do usuário e um
-> aparelho físico. **A partir desta mudança o Expo Go não serve mais para este projeto.**
+> ⛔ ~~**BLOQUEADO em T070–T074**~~ — **desbloqueado**: o dev client já buildou e rodou no tablet
+> via `npx expo run:android` a partir de uma cópia em `C:\poketche` (build local, sem `eas login`;
+> ver a memória `mobile-android-build-windows`). O Expo Go não serve mais, mas o build local sim.
+>
+> **US5 — Fase B: mobile do scanner (2026-07-16, checkpoint)**: **T070, T071, T072 e T073
+> completas** — tsc/eslint/prettier limpos, `expo install --check` OK. Câmera com **moldura-guia**
+> (não detecção ao vivo — decisão do usuário, ver T070) captura → recorta na moldura
+> (`expo-image-manipulator`, orientação-agnóstico) → OCR do backend; auto-captura com contador;
+> feedback celebratório (raridade/wishlist) com haptics toggleável (`expo-haptics`); revisão
+> completa (candidatos, edição de atributos, adição manual, resumo, confirmar/descartar) reusando
+> `promptWishlistRemoval`; recuperação da sessão pendente por banner na home.
+>
+> **US5 mobile completa — T074 fechado (2026-07-16)**: gravação local opt-in com o vídeo do próprio
+> vision-camera (`audio={false}`, mic nunca pedido), tela assistir/salvar/compartilhar/descartar
+> (`expo-video`/`expo-media-library`/`expo-sharing`), desativação graciosa em aparelho sem
+> capacidade (FR-063). **Desvio**: grava só o feed da câmera, não os overlays/áudio do app — a
+> gravação de tela real (FR-062, ReplayKit/MediaProjection) exigiria módulo nativo de terceiro e
+> ficou como camada on-device do spike. **Cinco deps nativas novas no total** (`expo-image-
+manipulator`, `expo-haptics`, `expo-video`, `expo-media-library`, `expo-sharing`; +plugin do
+> media-library no app.json) → **exige um novo build de dev client** (o build de 2026-07-16 não as
+> inclui; o app crasha nesses módulos até rebuildar). Pendente: **validação em aparelho** do
+> Independent Test da US5 (SC-006: ≥80% id, captura ≤2s, idioma ≥90%) — depende da precisão do OCR
+> tesseract.js e pode exigir trocar o motor via `CardIdentifier`; e o ajuste fino do `START_DELAY_MS`
+> da gravação e da geometria do crop.
 >
 > **Ambiente (2026-07-16)**: máquina nova — Docker Desktop instalado, `pnpm` só via `corepack
 pnpm` (não está no PATH). O `prettier --check` acusa ~93 arquivos por CRLF (`core.autocrlf=
@@ -375,11 +397,11 @@ true` sem `.gitattributes`, e `endOfLine: "lf"` no default): é artefato de chec
 - [x] T067 [P] [US5] Migrations `scan_session` + `scan_capture` (language_detected, variant, identification_method) — **já contempladas na migration inicial**: `ScanSession`/`ScanCapture` e os enums `ScanSessionStatus`/`ScanCaptureStatus`/`IdentificationMethod`/`CameraPref` já estão em prisma/schema.prisma e em prisma/migrations/20260712221833_init/. Nenhuma migration nova. (o caminho `apps/api/src/db/migrations/` citado aqui nunca existiu — o projeto usa `apps/api/prisma/migrations/`)
 - [x] T068 [US5] Interface `CardIdentifier` (`identify(crop) → {card, language, variant, confidence, candidates[], method}`) + implementação vencedora do spike, trocável (apps/api/src/integrations/identifier/ — no formato de 3 arquivos do integrations/push/, não em modules/, porque o motor de OCR é integração de terceiro: constituição V). OCR do crop inteiro (sem regiões fixas), parse de número sem assumir NNN/MMM, lookup `(set, number)` → senão trigram pelo nome; `createCardIdentifier` cai no `StubCardIdentifier` em NODE_ENV=test. Idioma indeterminado → `en` + `language_detected: false` (FR-067); variante sempre `normal` (o OCR não distingue reverse foil)
 - [x] T069 [US5] Endpoints de sessão: criar (409 se pendente), capturas, PATCH/DELETE captura, summary, confirm (+wishlist_matches), discard, pending (apps/api/src/modules/scanner/routes.ts) — rotas sob `/scan/sessions` conforme contracts/rest-api.md; +`POST /scan/sessions/:id/manual` (FR-056: adicionar carta não detectada). `confirm` é transacional e deduplica `cardId` antes do `resolveWishlistMatches`, senão a mesma carta reportaria o casamento duas vezes
-- [ ] T070 [US5] Mobile: câmera vision-camera com detecção de retângulo em tempo real, molduras, captura automática com contador (apps/mobile/src/features/scanner/camera/) — 🔓 **stack preparada** (vision-camera 4.7.3 + worklets-core + expo-dev-client + eas.json + babel plugin dos frame processors; expo-doctor 18/18). ⛔ **BLOQUEADO**: o primeiro build de dev client exige `eas login` do usuário e um aparelho físico — sem isso o app não roda mais (o Expo Go deixou de servir a partir desta mudança)
-- [ ] T071 [US5] Mobile: feedback padrão vs. celebratório (raridade/valor/wishlist), sons toggleáveis, duplicata incrementa com indicação (apps/mobile/src/features/scanner/feedback.ts)
-- [ ] T072 [US5] Mobile: tela de revisão — resolver "a revisar" com candidatos, ajustar qty/condição/idioma/variante, resumo estatístico, confirmar/descartar (apps/mobile/src/features/scanner/review/)
-- [ ] T073 [US5] Mobile: sessão pendente única com recuperação na abertura do app (storage local + GET pending) (apps/mobile/src/services/scan-session-storage.ts)
-- [ ] T074 [US5] Mobile: escolha de câmera lembrada + gravação local opt-in (tela com overlays/áudio), sem degradar detecção (desativar com aviso se sem capacidade), assistir/salvar/compartilhar/descartar + outro visual opcional; vídeo nunca sai do aparelho (apps/mobile/src/features/scanner/recording/)
+- [x] T070 [US5] Mobile: câmera vision-camera com **moldura-guia** (não detecção de retângulo em tempo real), captura manual e automática com contador (apps/mobile/app/scan/index.tsx, src/features/scanner/camera/{crop,useScanCapture}.ts) — **abordagem de moldura fixa** (decisão do usuário 2026-07-16): o alvo do FR-021 (detecção de borda ao vivo) exigiria um frame processor nativo (OpenCV) que não builda de forma confiável no Windows (MAX_PATH) e está fora do que o T066 definiu para o MVP. O crop sai da região central da moldura via `expo-image-manipulator` (orientação-agnóstico) → base64 comprimido → OCR do backend. Contador de auto-captura (3s, pausa durante a captura). Detecção de borda ao vivo fica registrada como pendência da camada on-device
+- [x] T071 [US5] Mobile: feedback padrão vs. celebratório, sons/vibração toggleáveis (`expo-haptics`), duplicata incrementa com indicação (apps/mobile/src/features/scanner/feedback.ts) — sinais disponíveis **no momento da captura**: raridade (celebra) e wishlist (conjunto carregado 1× por sessão); o destaque por **valor** é agregado no resumo (a resposta da captura não traz cotação por carta). Vibração via haptics; cue de áudio dedicado exigiria assets de som (registrado). Idioma incerto (FR-067) sinalizado na revisão
+- [x] T072 [US5] Mobile: tela de revisão — resolver "a revisar" com candidatos, ajustar qty/condição/idioma/variante, resumo estatístico, adição manual (FR-056), confirmar/descartar (apps/mobile/app/scan/review.tsx, src/features/scanner/review/) — condição nasce nula (não é detectável): a revisão exige defini-la (atalho "todas Near Mint") e o confirm avisa quantas ficaram a revisar. A pergunta de wishlist reusa `promptWishlistRemoval` (FR-052)
+- [x] T073 [US5] Mobile: sessão pendente única com recuperação (banner na home + GET pending; câmera lembrada em storage local, FR-061) (apps/mobile/src/services/scan-session-storage.ts) — a fonte da verdade da sessão é o servidor; o storage local só lembra a câmera e dá a pista da sessão em andamento
+- [x] T074 [US5] Mobile: gravação local opt-in, sem degradar a captura, assistir/salvar/compartilhar/descartar; vídeo nunca sai do aparelho (apps/mobile/src/features/scanner/recording/, app/scan/recording.tsx) — grava com o **vídeo do próprio vision-camera** (`Camera video`, `audio={false}` — mic nunca pedido), playback `expo-video`, salvar `expo-media-library`, compartilhar `expo-sharing`; o descarte limpa a referência (arquivo fica no cache, reciclado pelo SO — sem `expo-file-system`). **Desativação graciosa (FR-063)**: erro da câmera/gravação → marca "sem capacidade", desliga e avisa. **Desvio registrado**: a gravação captura só o **feed da câmera**, não os overlays de feedback nem o áudio do app (FR-062 pede câmera+overlays via ReplayKit/MediaProjection — exigiria módulo nativo de tela de terceiro, com risco de build no Windows e sem validação sem aparelho; ficou como a camada on-device do spike). **A escolha de câmera lembrada (FR-061) saiu no T073.** Novas deps nativas (`expo-video`/`expo-media-library`/`expo-sharing`) → **novo build de dev client**
 - [x] T075 [US5] Testes de integração da API de sessões: fluxo capturas → revisão → confirm/discard, nada na coleção antes de confirmar (apps/api/tests/integration/scanner.test.ts) — 32 testes, com `StubCardIdentifier` injetado; +19 unitários do parsing do OCR (casos obrigatórios do T066) e +9 do resumo da revisão
 
 **Checkpoint**: diferencial competitivo entregue sem bloquear nada

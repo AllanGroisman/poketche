@@ -1,7 +1,7 @@
 import { useState } from 'react';
-import { Pressable, StyleSheet, Switch, Text, View } from 'react-native';
+import { Switch, View } from 'react-native';
 import { Stack } from 'expo-router';
-import { AsyncBoundary, Screen, useThemeColors } from '@/components';
+import { AsyncBoundary, Screen, Text, Card, Button } from '@/components';
 import { useAsync } from '@/lib/useAsync';
 import {
   generateShareLink,
@@ -24,7 +24,6 @@ export default function VisibilityScreen() {
 }
 
 function Editor({ initial }: { initial: Visibility }) {
-  const c = useThemeColors();
   const [vis, setVis] = useState<Visibility>(initial);
   const [busy, setBusy] = useState(false);
 
@@ -50,7 +49,7 @@ function Editor({ initial }: { initial: Visibility }) {
   const isPublic = vis.status === 'public_link' && vis.share_url;
 
   return (
-    <View style={styles.container}>
+    <View className="flex-1 gap-1 pt-2">
       <Row
         label="Mostrar cartas"
         value={vis.show_cards}
@@ -67,38 +66,37 @@ function Editor({ initial }: { initial: Visibility }) {
         onChange={(v) => toggle('show_quantities', v)}
       />
 
-      <View style={[styles.card, { backgroundColor: c.card, borderColor: c.border }]}>
-        <Text style={[styles.cardTitle, { color: c.text }]}>Link público</Text>
+      <Card pad="lg" className="mt-6 gap-3">
+        <Text weight="bold" className="text-lg">
+          Link público
+        </Text>
         {isPublic ? (
           <>
-            <Text selectable style={[styles.url, { color: c.muted }]}>
+            <Text selectable tone="muted" className="text-sm">
               {vis.share_url}
             </Text>
-            <Pressable
-              accessibilityRole="button"
+            <Button
+              title="Revogar link"
+              variant="outline"
+              fullWidth
               disabled={busy}
               onPress={() => run('revoke')}
-              style={[styles.btn, { borderColor: c.border }]}
-            >
-              <Text style={{ color: c.danger, fontWeight: '600' }}>Revogar link</Text>
-            </Pressable>
+            />
           </>
         ) : (
           <>
-            <Text style={[styles.url, { color: c.muted }]}>
+            <Text tone="muted" className="text-sm">
               Sua coleção está privada. Gere um link para compartilhar.
             </Text>
-            <Pressable
-              accessibilityRole="button"
+            <Button
+              title="Gerar link público"
+              fullWidth
               disabled={busy}
               onPress={() => run('generate')}
-              style={[styles.btn, { backgroundColor: c.primary, borderColor: c.primary }]}
-            >
-              <Text style={{ color: '#fff', fontWeight: '700' }}>Gerar link público</Text>
-            </Pressable>
+            />
           </>
         )}
-      </View>
+      </Card>
     </View>
   );
 }
@@ -112,27 +110,14 @@ function Row({
   value: boolean;
   onChange: (v: boolean) => void;
 }) {
-  const c = useThemeColors();
   return (
-    <View style={[styles.row, { borderColor: c.border }]}>
-      <Text style={[styles.rowLabel, { color: c.text }]}>{label}</Text>
-      <Switch value={value} onValueChange={onChange} />
+    <View className="flex-row items-center justify-between border-b border-ink-200 py-3.5 dark:border-ink-800">
+      <Text className="text-base">{label}</Text>
+      <Switch
+        value={value}
+        onValueChange={onChange}
+        trackColor={{ true: '#6366f1', false: '#c9c9d0' }}
+      />
     </View>
   );
 }
-
-const styles = StyleSheet.create({
-  container: { flex: 1, paddingTop: 8, gap: 4 },
-  row: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingVertical: 14,
-    borderBottomWidth: StyleSheet.hairlineWidth,
-  },
-  rowLabel: { fontSize: 16 },
-  card: { marginTop: 24, padding: 16, borderRadius: 12, borderWidth: 1, gap: 12 },
-  cardTitle: { fontSize: 16, fontWeight: '700' },
-  url: { fontSize: 14 },
-  btn: { padding: 12, borderRadius: 10, borderWidth: 1, alignItems: 'center' },
-});

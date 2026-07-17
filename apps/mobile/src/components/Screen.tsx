@@ -1,18 +1,27 @@
 import type { ReactNode } from 'react';
-import { StyleSheet, View } from 'react-native';
-import { useThemeColors } from './theme';
+import { View } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 
-/** Container base de tela com fundo sensível a tema e padding padrão. */
-export function Screen({ children, padded = true }: { children: ReactNode; padded?: boolean }) {
-  const c = useThemeColors();
+/**
+ * Container base de tela — fundo sensível a tema (dark-first) e padding padrão do design system.
+ * API preservada (`padded`) para as telas não mudarem. Respeita a safe area para tirar o conteúdo
+ * de baixo do notch/status bar (parte da cara de "app de verdade").
+ */
+export function Screen({
+  children,
+  padded = true,
+  scroll = false,
+}: {
+  children: ReactNode;
+  padded?: boolean;
+  scroll?: boolean;
+}) {
   return (
-    <View style={[styles.screen, { backgroundColor: c.background }, padded && styles.padded]}>
-      {children}
-    </View>
+    <SafeAreaView
+      edges={scroll ? ['top'] : ['top', 'bottom']}
+      className="flex-1 bg-ink-50 dark:bg-ink-950"
+    >
+      <View className={`flex-1 ${padded ? 'px-4 pt-2' : ''}`}>{children}</View>
+    </SafeAreaView>
   );
 }
-
-const styles = StyleSheet.create({
-  screen: { flex: 1 },
-  padded: { padding: 16 },
-});

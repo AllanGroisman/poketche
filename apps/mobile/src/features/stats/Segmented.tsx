@@ -1,5 +1,5 @@
-import { Pressable, StyleSheet, Text, View } from 'react-native';
-import { useThemeColors } from '@/components';
+import { Pressable, View } from 'react-native';
+import { Text } from '@/components';
 
 /** Controle segmentado simples para alternar eixo/tipo/período no dashboard (US4). */
 export function Segmented<T extends string>({
@@ -11,19 +11,24 @@ export function Segmented<T extends string>({
   value: T;
   onChange: (v: T) => void;
 }) {
-  const c = useThemeColors();
   return (
-    <View style={[styles.row, { borderColor: c.border, backgroundColor: c.card }]}>
+    <View className="flex-row gap-1 rounded-md border border-ink-200 bg-white p-1 dark:border-ink-800 dark:bg-ink-900">
       {options.map((opt) => {
         const active = opt.value === value;
         return (
           <Pressable
             key={opt.value}
             accessibilityRole="button"
+            accessibilityState={{ selected: active }}
             onPress={() => onChange(opt.value)}
-            style={[styles.seg, active && { backgroundColor: c.primary }]}
+            className={`flex-1 items-center rounded-sm px-1 py-1.5 ${active ? 'bg-brand-600' : ''}`}
           >
-            <Text style={[styles.label, { color: active ? '#fff' : c.muted }]} numberOfLines={1}>
+            <Text
+              weight="semibold"
+              tone={active ? 'inverse' : 'muted'}
+              numberOfLines={1}
+              className="text-xs"
+            >
               {opt.label}
             </Text>
           </Pressable>
@@ -32,9 +37,3 @@ export function Segmented<T extends string>({
     </View>
   );
 }
-
-const styles = StyleSheet.create({
-  row: { flexDirection: 'row', padding: 3, borderRadius: 10, borderWidth: 1, gap: 3 },
-  seg: { flex: 1, paddingVertical: 7, paddingHorizontal: 4, borderRadius: 8, alignItems: 'center' },
-  label: { fontSize: 12, fontWeight: '600' },
-});

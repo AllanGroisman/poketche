@@ -21,9 +21,17 @@ export default tseslint.config(
     },
   },
   {
-    // O babel.config.js é CommonJS e roda no Node (build time), não no bundle do app — o
-    // formato é imposto pelo Babel, não é escolha nossa.
-    files: ['apps/mobile/babel.config.js'],
-    languageOptions: { sourceType: 'commonjs', globals: { module: 'writable' } },
+    // Configs de build do mobile (Babel, Metro, Tailwind) são CommonJS e rodam no Node (build
+    // time), não no bundle do app — o formato é imposto pelas ferramentas, não é escolha nossa.
+    files: [
+      'apps/mobile/babel.config.js',
+      'apps/mobile/metro.config.js',
+      'apps/mobile/tailwind.config.js',
+    ],
+    languageOptions: {
+      sourceType: 'commonjs',
+      globals: { module: 'writable', require: 'readonly', __dirname: 'readonly' },
+    },
+    rules: { '@typescript-eslint/no-require-imports': 'off' },
   },
 );
