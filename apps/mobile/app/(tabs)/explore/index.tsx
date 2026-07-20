@@ -1,6 +1,7 @@
-import { FlatList, Image, Pressable, StyleSheet, Text, View } from 'react-native';
+import { FlatList, Image, Pressable, View } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 import { Stack, useRouter } from 'expo-router';
-import { AsyncBoundary, EmptyState, Screen, useThemeColors } from '@/components';
+import { AsyncBoundary, EmptyState, Screen, Text } from '@/components';
 import { useAsync } from '@/lib/useAsync';
 import { formatDate } from '@/lib/format';
 import { getSets, type CatalogSet } from '@/features/catalog/api';
@@ -15,13 +16,21 @@ export default function ExploreScreen() {
 
   return (
     <Screen padded={false}>
-      <Stack.Screen options={{ headerShown: true, title: 'Explorar catálogo' }} />
+      <Stack.Screen options={{ headerShown: false }} />
+      <View className="px-4 pb-2 pt-1">
+        <Text weight="extrabold" className="text-2xl">
+          Explorar
+        </Text>
+        <Text tone="muted" className="text-sm">
+          Todo o catálogo, edição por edição
+        </Text>
+      </View>
       <AsyncBoundary state={state} loadingLabel="Carregando edições…">
         {(data) => (
           <FlatList
             data={data.sets}
             keyExtractor={(s) => s.id}
-            contentContainerStyle={styles.list}
+            contentContainerStyle={{ padding: 16, gap: 10, paddingBottom: 24 }}
             ListEmptyComponent={
               <EmptyState title="Catálogo vazio" hint="Nenhuma edição sincronizada ainda." />
             }
@@ -41,36 +50,28 @@ export default function ExploreScreen() {
 }
 
 function SetRow({ set, onPress }: { set: CatalogSet; onPress: () => void }) {
-  const c = useThemeColors();
   return (
-    <Pressable onPress={onPress} style={[styles.row, { borderColor: c.border }]}>
+    <Pressable
+      onPress={onPress}
+      className="flex-row items-center gap-3 rounded-md border border-ink-200 bg-white p-3 active:opacity-80 dark:border-ink-800 dark:bg-ink-900"
+    >
       {set.logo_url ? (
-        <Image source={{ uri: set.logo_url }} style={styles.logo} resizeMode="contain" />
+        <Image source={{ uri: set.logo_url }} className="h-10 w-14 rounded" resizeMode="contain" />
       ) : (
-        <View style={[styles.logo, { backgroundColor: c.card }]} />
+        <View className="h-10 w-14 items-center justify-center rounded bg-ink-100 dark:bg-ink-800">
+          <Ionicons name="albums-outline" size={18} color="#9a9aa2" />
+        </View>
       )}
-      <View style={{ flex: 1 }}>
-        <Text style={[styles.name, { color: c.text }]}>{set.name}</Text>
-        <Text style={[styles.meta, { color: c.muted }]}>
+      <View className="min-w-0 flex-1">
+        <Text weight="semibold" numberOfLines={1}>
+          {set.name}
+        </Text>
+        <Text tone="muted" numberOfLines={1} className="text-xs">
           {set.series} · {set.total_cards} cartas
           {set.release_date ? ` · ${formatDate(set.release_date)}` : ''}
         </Text>
       </View>
+      <Ionicons name="chevron-forward" size={18} color="#9a9aa2" />
     </Pressable>
   );
 }
-
-const styles = StyleSheet.create({
-  list: { padding: 12, gap: 8 },
-  row: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-    padding: 10,
-    borderRadius: 12,
-    borderWidth: 1,
-  },
-  logo: { width: 56, height: 40, borderRadius: 4 },
-  name: { fontSize: 16, fontWeight: '600' },
-  meta: { fontSize: 12 },
-});

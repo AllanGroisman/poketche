@@ -1,5 +1,5 @@
-import { StyleSheet, Text, View } from 'react-native';
-import { useThemeColors } from '@/components';
+import { View } from 'react-native';
+import { Text } from '@/components';
 
 export interface BarRow {
   key: string;
@@ -15,43 +15,40 @@ export interface BarRow {
 /**
  * Lista de barras horizontais sem dependência de gráfico (distribuição FR-018 e completude
  * FR-020). Cada barra é normalizada pelo maior valor da lista.
+ *
+ * `accent` (cor concreta) e a largura ficam em `style`: são valores calculados em runtime, fora do
+ * alcance das classes estáticas do NativeWind.
  */
-export function BarList({ rows, accent }: { rows: BarRow[]; accent?: string }) {
-  const c = useThemeColors();
+export function BarList({ rows, accent = '#4f46e5' }: { rows: BarRow[]; accent?: string }) {
   const max = Math.max(1, ...rows.map((r) => r.amount));
   return (
-    <View style={{ gap: 10 }}>
+    <View className="gap-2.5">
       {rows.map((row) => (
-        <View key={row.key} style={{ gap: 4 }}>
-          <View style={styles.head}>
-            <Text style={[styles.label, { color: c.text }]} numberOfLines={1}>
+        <View key={row.key} className="gap-1">
+          <View className="flex-row items-baseline justify-between gap-2">
+            <Text weight="semibold" numberOfLines={1} className="flex-1 text-sm">
               {row.label}
             </Text>
-            <Text style={[styles.trailing, { color: c.muted }]}>{row.trailing}</Text>
+            <Text weight="semibold" tone="muted" className="text-sm">
+              {row.trailing}
+            </Text>
           </View>
-          <View style={[styles.track, { backgroundColor: c.card }]}>
+          <View className="h-2 overflow-hidden rounded-full bg-ink-100 dark:bg-ink-800">
             <View
-              style={[
-                styles.fill,
-                {
-                  backgroundColor: accent ?? c.primary,
-                  width: `${Math.max(3, (row.amount / max) * 100)}%`,
-                },
-              ]}
+              className="h-2 rounded-full"
+              style={{
+                backgroundColor: accent,
+                width: `${Math.max(3, (row.amount / max) * 100)}%`,
+              }}
             />
           </View>
-          {row.hint ? <Text style={[styles.hint, { color: c.muted }]}>{row.hint}</Text> : null}
+          {row.hint ? (
+            <Text tone="muted" className="text-2xs">
+              {row.hint}
+            </Text>
+          ) : null}
         </View>
       ))}
     </View>
   );
 }
-
-const styles = StyleSheet.create({
-  head: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'baseline', gap: 8 },
-  label: { fontSize: 14, fontWeight: '600', flex: 1 },
-  trailing: { fontSize: 13, fontWeight: '600' },
-  track: { height: 8, borderRadius: 4, overflow: 'hidden' },
-  fill: { height: 8, borderRadius: 4 },
-  hint: { fontSize: 11 },
-});

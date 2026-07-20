@@ -1,7 +1,7 @@
 import { useState } from 'react';
-import { ScrollView, StyleSheet, Text, View } from 'react-native';
+import { ScrollView, View } from 'react-native';
 import { Stack } from 'expo-router';
-import { AsyncBoundary, Screen, useThemeColors } from '@/components';
+import { AsyncBoundary, Screen, Text, Card } from '@/components';
 import { useAsync } from '@/lib/useAsync';
 import { formatBRL, formatBRLDelta } from '@/lib/format';
 import { Sparkline } from '@/features/pricing/history/Sparkline';
@@ -38,7 +38,7 @@ export default function DashboardScreen() {
       <Stack.Screen options={{ headerShown: true, title: 'Estatísticas' }} />
       <AsyncBoundary state={state} loadingLabel="Calculando estatísticas…">
         {([overview, history, completion]) => (
-          <ScrollView contentContainerStyle={styles.container}>
+          <ScrollView contentContainerStyle={{ padding: 16, gap: 22, paddingBottom: 40 }}>
             <OverviewCard overview={overview} />
             <HistorySection history={history} />
             <DistributionSection />
@@ -52,28 +52,32 @@ export default function DashboardScreen() {
 }
 
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
-  const c = useThemeColors();
   return (
-    <View style={{ gap: 10 }}>
-      <Text style={[styles.section, { color: c.muted }]}>{title}</Text>
+    <View className="gap-2.5">
+      <Text tone="muted" weight="bold" className="text-xs uppercase tracking-wide">
+        {title}
+      </Text>
       {children}
     </View>
   );
 }
 
 function OverviewCard({ overview }: { overview: StatsOverview }) {
-  const c = useThemeColors();
   const change = overview.change_since_last_cents;
   return (
-    <View style={[styles.hero, { borderColor: c.border, backgroundColor: c.card }]}>
-      <Text style={[styles.heroLabel, { color: c.muted }]}>Valor total estimado</Text>
-      <Text style={[styles.heroValue, { color: c.text }]}>{formatBRL(overview.total_cents)}</Text>
+    <View className="gap-1 rounded-lg bg-brand-600 p-4">
+      <Text tone="inverse" weight="medium" className="text-xs uppercase opacity-80">
+        Valor total estimado
+      </Text>
+      <Text tone="inverse" weight="extrabold" className="text-4xl">
+        {formatBRL(overview.total_cents)}
+      </Text>
       {change != null && change !== 0 ? (
-        <Text style={[styles.heroDelta, { color: change > 0 ? c.success : c.danger }]}>
+        <Text tone="inverse" weight="semibold" className="text-sm opacity-90">
           {formatBRLDelta(change)} desde o último registro
         </Text>
       ) : null}
-      <Text style={[styles.heroMeta, { color: c.muted }]}>
+      <Text tone="inverse" className="mt-0.5 text-xs opacity-80">
         {overview.distinct_cards} cartas · {overview.total_quantity} unidades ·{' '}
         {overview.priced_items} com cotação
         {overview.unpriced_items > 0 ? ` · ${overview.unpriced_items} sem preço` : ''}
@@ -83,16 +87,17 @@ function OverviewCard({ overview }: { overview: StatsOverview }) {
 }
 
 function HistorySection({ history }: { history: StatsHistory }) {
-  const c = useThemeColors();
   return (
     <Section title="Evolução do valor">
       {history.history_available ? (
-        <Sparkline
-          points={history.points.map((p) => ({ t: p.taken_at, price_cents: p.total_cents }))}
-        />
+        <Card pad="md">
+          <Sparkline
+            points={history.points.map((p) => ({ t: p.taken_at, price_cents: p.total_cents }))}
+          />
+        </Card>
       ) : (
-        <View style={[styles.unavailable, { borderColor: c.border }]}>
-          <Text style={{ color: c.muted, textAlign: 'center' }}>
+        <View className="rounded-md border border-dashed border-ink-300 p-5 dark:border-ink-700">
+          <Text tone="muted" className="text-center text-sm">
             A evolução aparece após alguns dias de registro do valor da coleção.
           </Text>
         </View>
@@ -151,7 +156,6 @@ function RankingSection() {
 }
 
 function CompletionSection({ completion }: { completion: StatsCompletion }) {
-  const c = useThemeColors();
   if (completion.sets.length === 0) return null;
   const rows: BarRow[] = completion.sets.slice(0, 12).map((s) => ({
     key: s.set_external_id,
@@ -162,18 +166,7 @@ function CompletionSection({ completion }: { completion: StatsCompletion }) {
   }));
   return (
     <Section title="Completude por edição">
-      <BarList rows={rows} accent={c.success} />
+      <BarList rows={rows} accent="#16a34a" />
     </Section>
   );
 }
-
-const styles = StyleSheet.create({
-  container: { padding: 12, gap: 22, paddingBottom: 40 },
-  section: { fontSize: 13, fontWeight: '700', textTransform: 'uppercase', letterSpacing: 0.5 },
-  hero: { padding: 16, borderRadius: 14, borderWidth: 1, gap: 3 },
-  heroLabel: { fontSize: 12, textTransform: 'uppercase', letterSpacing: 0.5 },
-  heroValue: { fontSize: 30, fontWeight: '800' },
-  heroDelta: { fontSize: 13, fontWeight: '600' },
-  heroMeta: { fontSize: 12, marginTop: 2 },
-  unavailable: { padding: 20, borderWidth: 1, borderRadius: 10, borderStyle: 'dashed' },
-});

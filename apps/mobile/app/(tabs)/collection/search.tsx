@@ -1,22 +1,12 @@
 import { useEffect, useState } from 'react';
-import {
-  ActivityIndicator,
-  FlatList,
-  Image,
-  Pressable,
-  StyleSheet,
-  Text,
-  TextInput,
-  View,
-} from 'react-native';
+import { ActivityIndicator, FlatList, Image, Pressable, View } from 'react-native';
 import { Stack, useRouter } from 'expo-router';
-import { Screen, useThemeColors } from '@/components';
+import { Screen, Text, Input } from '@/components';
 import { imageUrl, ApiError } from '@/services/api';
 import { searchCards, type CardResult } from '@/features/collection/api';
 
 /** Busca com autocomplete (debounce) sobre o catálogo multilíngue (T031, FR-011). */
 export default function SearchScreen() {
-  const c = useThemeColors();
   const router = useRouter();
   const [q, setQ] = useState('');
   const [results, setResults] = useState<CardResult[]>([]);
@@ -47,22 +37,19 @@ export default function SearchScreen() {
   return (
     <Screen padded={false}>
       <Stack.Screen options={{ headerShown: true, title: 'Buscar carta' }} />
-      <View style={styles.searchBox}>
-        <TextInput
-          autoFocus
-          placeholder="Nome da carta (PT ou EN)…"
-          placeholderTextColor={c.muted}
-          value={q}
-          onChangeText={setQ}
-          style={[styles.input, { color: c.text, borderColor: c.border, backgroundColor: c.card }]}
-        />
+      <View className="p-4 pb-2">
+        <Input autoFocus placeholder="Nome da carta (PT ou EN)…" value={q} onChangeText={setQ} />
       </View>
-      {loading ? <ActivityIndicator color={c.primary} style={{ marginTop: 12 }} /> : null}
-      {error ? <Text style={[styles.error, { color: c.danger }]}>{error}</Text> : null}
+      {loading ? <ActivityIndicator color="#6366f1" className="mt-3" /> : null}
+      {error ? (
+        <Text tone="danger" className="px-4 text-sm">
+          {error}
+        </Text>
+      ) : null}
       <FlatList
         data={results}
         keyExtractor={(r) => r.id}
-        contentContainerStyle={styles.list}
+        contentContainerStyle={{ padding: 16, gap: 10, paddingBottom: 24 }}
         keyboardShouldPersistTaps="handled"
         renderItem={({ item }) => (
           <Pressable
@@ -72,12 +59,17 @@ export default function SearchScreen() {
                 params: { cardId: item.id, cardName: item.name, cardImage: item.image_small_url },
               })
             }
-            style={[styles.row, { borderColor: c.border }]}
+            className="flex-row items-center gap-3 rounded-md border border-ink-200 bg-white p-2.5 active:opacity-80 dark:border-ink-800 dark:bg-ink-900"
           >
-            <Image source={{ uri: imageUrl(item.image_small_url) }} style={styles.thumb} />
-            <View style={{ flex: 1 }}>
-              <Text style={[styles.name, { color: c.text }]}>{item.name}</Text>
-              <Text style={[styles.meta, { color: c.muted }]}>
+            <Image
+              source={{ uri: imageUrl(item.image_small_url) }}
+              className="h-14 w-10 rounded bg-ink-100 dark:bg-ink-800"
+            />
+            <View className="min-w-0 flex-1">
+              <Text weight="semibold" numberOfLines={1}>
+                {item.name}
+              </Text>
+              <Text tone="muted" numberOfLines={1} className="text-xs">
                 {item.set.name} · Nº {item.number} · {item.rarity}
               </Text>
             </View>
@@ -87,21 +79,3 @@ export default function SearchScreen() {
     </Screen>
   );
 }
-
-const styles = StyleSheet.create({
-  searchBox: { padding: 12 },
-  input: { borderWidth: 1, borderRadius: 10, padding: 12, fontSize: 16 },
-  error: { paddingHorizontal: 12, fontSize: 14 },
-  list: { padding: 12, gap: 8 },
-  row: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-    padding: 10,
-    borderRadius: 12,
-    borderWidth: 1,
-  },
-  thumb: { width: 40, height: 56, borderRadius: 4, backgroundColor: '#0002' },
-  name: { fontSize: 16, fontWeight: '600' },
-  meta: { fontSize: 12 },
-});

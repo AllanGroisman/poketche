@@ -1,11 +1,13 @@
 import { useState } from 'react';
-import { Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
+import { View } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 import { Link } from 'expo-router';
-import { Screen, useThemeColors } from '@/components';
+import { Screen, Text, Input, Button } from '@/components';
 
 /**
- * Formulário de e-mail/senha reutilizado por login e cadastro (US1). Cobre estados de
- * carregando e erro (constituição VI). O submit é delegado (Supabase) pelo chamador.
+ * Formulário de e-mail/senha reutilizado por login e cadastro (US1). Cobre estados de carregando e
+ * erro (constituição VI). O submit é delegado (Supabase) pelo chamador. Repaginado com o design
+ * system (Input/Button/Text) — some o `#fff` hardcoded e os literais soltos.
  */
 export function AuthForm({
   title,
@@ -24,7 +26,6 @@ export function AuthForm({
   altLabel: string;
   hint?: string;
 }) {
-  const c = useThemeColors();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
@@ -46,58 +47,63 @@ export function AuthForm({
 
   return (
     <Screen>
-      <View style={styles.container}>
-        <Text style={[styles.title, { color: c.text }]}>{title}</Text>
+      <View className="flex-1 justify-center gap-3">
+        <View className="mb-4 items-center gap-2">
+          <View className="h-16 w-16 items-center justify-center rounded-2xl bg-brand-600">
+            <Ionicons name="albums" size={32} color="#fff" />
+          </View>
+          <Text weight="extrabold" className="text-3xl">
+            {title}
+          </Text>
+        </View>
 
-        <TextInput
-          style={[styles.input, { color: c.text, borderColor: c.border, backgroundColor: c.card }]}
-          placeholder="E-mail"
-          placeholderTextColor={c.muted}
+        <Input
+          label="E-mail"
+          placeholder="voce@email.com"
           autoCapitalize="none"
           keyboardType="email-address"
           autoComplete="email"
           value={email}
           onChangeText={setEmail}
         />
-        <TextInput
-          style={[styles.input, { color: c.text, borderColor: c.border, backgroundColor: c.card }]}
-          placeholder="Senha (mín. 6)"
-          placeholderTextColor={c.muted}
+        <Input
+          label="Senha"
+          placeholder="Mínimo 6 caracteres"
           secureTextEntry
           value={password}
           onChangeText={setPassword}
         />
 
-        {hint ? <Text style={[styles.hint, { color: c.muted }]}>{hint}</Text> : null}
-        {error ? <Text style={[styles.error, { color: c.danger }]}>{error}</Text> : null}
+        {hint ? (
+          <Text tone="muted" className="text-sm">
+            {hint}
+          </Text>
+        ) : null}
+        {error ? (
+          <Text tone="danger" className="text-sm">
+            {error}
+          </Text>
+        ) : null}
 
-        <Pressable
-          accessibilityRole="button"
+        <Button
+          title={loading ? 'Aguarde…' : cta}
+          size="lg"
+          fullWidth
+          loading={loading}
           disabled={!canSubmit}
           onPress={submit}
-          style={[styles.button, { backgroundColor: c.primary, opacity: canSubmit ? 1 : 0.5 }]}
-        >
-          <Text style={styles.buttonText}>{loading ? 'Aguarde…' : cta}</Text>
-        </Pressable>
+          className="mt-2"
+        />
 
-        <View style={styles.altRow}>
-          <Text style={{ color: c.muted }}>{altText} </Text>
-          <Link href={altHref} style={{ color: c.primary, fontWeight: '600' }}>
-            {altLabel}
+        <View className="mt-3 flex-row justify-center">
+          <Text tone="muted">{altText} </Text>
+          <Link href={altHref} asChild>
+            <Text weight="semibold" tone="brand">
+              {altLabel}
+            </Text>
           </Link>
         </View>
       </View>
     </Screen>
   );
 }
-
-const styles = StyleSheet.create({
-  container: { flex: 1, justifyContent: 'center', gap: 12 },
-  title: { fontSize: 26, fontWeight: '700', marginBottom: 8 },
-  input: { borderWidth: 1, borderRadius: 10, padding: 14, fontSize: 16 },
-  hint: { fontSize: 13 },
-  error: { fontSize: 14 },
-  button: { marginTop: 8, padding: 15, borderRadius: 10, alignItems: 'center' },
-  buttonText: { color: '#fff', fontWeight: '700', fontSize: 16 },
-  altRow: { flexDirection: 'row', justifyContent: 'center', marginTop: 12 },
-});

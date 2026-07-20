@@ -1,7 +1,8 @@
 import { useState } from 'react';
-import { Alert, FlatList, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
+import { Alert, FlatList, Pressable, View } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 import { Stack, router } from 'expo-router';
-import { AsyncBoundary, EmptyState, Screen, useThemeColors } from '@/components';
+import { AsyncBoundary, EmptyState, Screen, Text, Input, Button } from '@/components';
 import { useAsync } from '@/lib/useAsync';
 import {
   createWishlist,
@@ -12,13 +13,12 @@ import {
 
 /**
  * Wishlists do usuário (T065, FR-044): criar, abrir, excluir. O preço-alvo e os indicadores
- * ficam na tela da lista (`[id]`), que é onde as cartas aparecem.
+ * ficam na tela da lista (`detail`), que é onde as cartas aparecem.
  */
 export default function WishlistsScreen() {
   const state = useAsync(getWishlists, []);
   const [name, setName] = useState('');
   const [creating, setCreating] = useState(false);
-  const c = useThemeColors();
 
   async function onCreate() {
     const trimmed = name.trim();
@@ -56,26 +56,30 @@ export default function WishlistsScreen() {
 
   return (
     <Screen padded={false}>
-      <Stack.Screen options={{ headerShown: true, title: 'Wishlists' }} />
+      <Stack.Screen options={{ headerShown: false }} />
+      <View className="px-4 pb-2 pt-1">
+        <Text weight="extrabold" className="text-2xl">
+          Wishlists
+        </Text>
+      </View>
 
-      <View style={[styles.creator, { borderColor: c.border }]}>
-        <TextInput
-          value={name}
-          onChangeText={setName}
-          placeholder="Nova wishlist (ex.: Completar Base Set)"
-          placeholderTextColor={c.muted}
-          style={[styles.input, { color: c.text, borderColor: c.border, backgroundColor: c.card }]}
-          onSubmitEditing={onCreate}
-          returnKeyType="done"
-          maxLength={60}
-        />
-        <Pressable
+      <View className="flex-row items-end gap-2 border-b border-ink-200 px-4 pb-3 dark:border-ink-800">
+        <View className="flex-1">
+          <Input
+            value={name}
+            onChangeText={setName}
+            placeholder="Nova wishlist (ex.: Completar Base Set)"
+            onSubmitEditing={onCreate}
+            returnKeyType="done"
+            maxLength={60}
+          />
+        </View>
+        <Button
+          title="Criar"
           onPress={onCreate}
           disabled={!name.trim() || creating}
-          style={[styles.add, { backgroundColor: name.trim() ? c.primary : c.border }]}
-        >
-          <Text style={styles.addText}>{creating ? '…' : 'Criar'}</Text>
-        </Pressable>
+          loading={creating}
+        />
       </View>
 
       <AsyncBoundary state={state} loadingLabel="Carregando wishlists…">
@@ -89,23 +93,25 @@ export default function WishlistsScreen() {
             <FlatList
               data={lists}
               keyExtractor={(l) => l.id}
-              contentContainerStyle={styles.list}
+              contentContainerStyle={{ padding: 16, gap: 10, paddingBottom: 24 }}
               renderItem={({ item }) => (
                 <Pressable
                   onPress={() =>
                     router.push({ pathname: '/wishlists/detail', params: { wishlistId: item.id } })
                   }
                   onLongPress={() => onDelete(item)}
-                  style={[styles.card, { borderColor: c.border, backgroundColor: c.card }]}
+                  className="flex-row items-center gap-2.5 rounded-md border border-ink-200 bg-white p-3.5 active:opacity-80 dark:border-ink-800 dark:bg-ink-900"
                 >
-                  <View style={{ flex: 1 }}>
-                    <Text style={[styles.cardName, { color: c.text }]}>{item.name}</Text>
-                    <Text style={[styles.cardMeta, { color: c.muted }]}>
+                  <View className="min-w-0 flex-1">
+                    <Text weight="bold" numberOfLines={1}>
+                      {item.name}
+                    </Text>
+                    <Text tone="muted" className="mt-0.5 text-xs">
                       {item.item_count} {item.item_count === 1 ? 'carta' : 'cartas'}
                       {item.notifications_enabled ? '' : ' · notificações desligadas'}
                     </Text>
                   </View>
-                  <Text style={{ color: c.muted, fontSize: 20 }}>›</Text>
+                  <Ionicons name="chevron-forward" size={18} color="#9a9aa2" />
                 </Pressable>
               )}
             />
@@ -115,21 +121,3 @@ export default function WishlistsScreen() {
     </Screen>
   );
 }
-
-const styles = StyleSheet.create({
-  creator: { flexDirection: 'row', gap: 8, padding: 12, borderBottomWidth: 1 },
-  input: { flex: 1, borderWidth: 1, borderRadius: 10, paddingHorizontal: 12, paddingVertical: 10 },
-  add: { paddingHorizontal: 16, justifyContent: 'center', borderRadius: 10 },
-  addText: { color: '#fff', fontWeight: '700' },
-  list: { padding: 12, gap: 10 },
-  card: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 10,
-    padding: 14,
-    borderWidth: 1,
-    borderRadius: 12,
-  },
-  cardName: { fontSize: 16, fontWeight: '700' },
-  cardMeta: { fontSize: 12, marginTop: 2 },
-});

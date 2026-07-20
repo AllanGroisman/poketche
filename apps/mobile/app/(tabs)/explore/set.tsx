@@ -1,15 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
-import {
-  ActivityIndicator,
-  FlatList,
-  Image,
-  Pressable,
-  StyleSheet,
-  Text,
-  View,
-} from 'react-native';
+import { ActivityIndicator, FlatList, Image, Pressable, View } from 'react-native';
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
-import { EmptyState, ErrorState, LoadingState, Screen, useThemeColors } from '@/components';
+import { EmptyState, ErrorState, LoadingState, Screen, Text } from '@/components';
 import { ApiError, imageUrl } from '@/services/api';
 import { useSession } from '@/features/account/useSession';
 import { addMissingToWishlist } from '@/features/wishlist/add-to-wishlist';
@@ -29,7 +21,6 @@ import {
  * Sem sessão, a completude nem é pedida: o visitante não vê indicador de posse (FR-072).
  */
 export default function SetGridScreen() {
-  const c = useThemeColors();
   const router = useRouter();
   const { session, loading: sessionLoading } = useSession();
   const { setId } = useLocalSearchParams<{ setId: string }>();
@@ -107,8 +98,8 @@ export default function SetGridScreen() {
         key={onlyMissing ? 'missing' : 'all'}
         keyExtractor={(card) => card.id}
         numColumns={3}
-        columnWrapperStyle={styles.column}
-        contentContainerStyle={styles.list}
+        columnWrapperStyle={{ gap: 10 }}
+        contentContainerStyle={{ padding: 16, gap: 12 }}
         onEndReached={loadMore}
         onEndReachedThreshold={0.5}
         ListHeaderComponent={
@@ -128,7 +119,7 @@ export default function SetGridScreen() {
           )
         }
         ListFooterComponent={
-          loadingMore ? <ActivityIndicator color={c.primary} style={styles.footer} /> : null
+          loadingMore ? <ActivityIndicator color="#6366f1" className="py-4" /> : null
         }
         renderItem={({ item }) => (
           <GridTile
@@ -153,23 +144,23 @@ function CompletionHeader({
   onlyMissing: boolean;
   onToggle: () => void;
 }) {
-  const c = useThemeColors();
   const missing = completion.missing_card_ids.length;
   return (
-    <View style={[styles.completion, { borderColor: c.border, backgroundColor: c.card }]}>
-      <View style={styles.completionRow}>
-        <Text style={[styles.completionText, { color: c.text }]}>
+    <View className="mb-1 gap-2 rounded-lg border border-ink-200 bg-white p-3 dark:border-ink-800 dark:bg-ink-900">
+      <View className="flex-row items-center justify-between">
+        <Text weight="bold" className="text-base">
           {completion.owned} de {completion.total} · {completion.pct}%
         </Text>
         <Pressable accessibilityRole="button" onPress={onToggle}>
-          <Text style={{ color: c.primary, fontWeight: '700', fontSize: 13 }}>
+          <Text weight="bold" tone="brand" className="text-sm">
             {onlyMissing ? 'Ver todas' : `Ver faltantes (${missing})`}
           </Text>
         </Pressable>
       </View>
-      <View style={[styles.bar, { backgroundColor: c.border }]}>
+      <View className="h-1.5 overflow-hidden rounded-full bg-ink-200 dark:bg-ink-800">
         <View
-          style={[styles.barFill, { backgroundColor: c.primary, width: `${completion.pct}%` }]}
+          className="h-full rounded-full bg-brand-600"
+          style={{ width: `${completion.pct}%` }}
         />
       </View>
       {/* Atalho em lote das faltantes (FR-072) — dependia dos endpoints da US9. */}
@@ -177,9 +168,9 @@ function CompletionHeader({
         <Pressable
           accessibilityRole="button"
           onPress={() => void addMissingToWishlist(completion.missing_card_ids)}
-          style={[styles.batch, { borderColor: c.primary }]}
+          className="items-center rounded-sm border border-brand-500 py-2.5 active:opacity-70"
         >
-          <Text style={{ color: c.primary, fontWeight: '700', fontSize: 13 }}>
+          <Text weight="bold" tone="brand" className="text-sm">
             Adicionar {missing} faltante{missing === 1 ? '' : 's'} à wishlist
           </Text>
         </Pressable>
@@ -199,50 +190,27 @@ function GridTile({
   showOwnership: boolean;
   onPress: () => void;
 }) {
-  const c = useThemeColors();
   const owned = quantity != null;
   return (
-    <Pressable onPress={onPress} style={styles.tile}>
-      <Image
-        source={{ uri: imageUrl(card.image_small_url) }}
-        style={[styles.art, showOwnership && !owned ? styles.missingArt : null]}
-      />
-      {showOwnership && owned ? (
-        <View style={[styles.badge, { backgroundColor: c.success }]}>
-          <Text style={styles.badgeText}>{quantity}</Text>
-        </View>
-      ) : null}
-      <Text style={[styles.number, { color: c.muted }]} numberOfLines={1}>
+    <Pressable onPress={onPress} className="flex-1 gap-1" style={{ maxWidth: '33%' }}>
+      <View className="relative">
+        <Image
+          source={{ uri: imageUrl(card.image_small_url) }}
+          className={`aspect-[0.72] w-full rounded-md bg-ink-100 dark:bg-ink-800 ${
+            showOwnership && !owned ? 'opacity-30' : ''
+          }`}
+        />
+        {showOwnership && owned ? (
+          <View className="absolute right-1 top-1 min-w-[20px] items-center rounded-full bg-success px-1.5 py-0.5">
+            <Text tone="inverse" weight="extrabold" className="text-2xs">
+              {quantity}
+            </Text>
+          </View>
+        ) : null}
+      </View>
+      <Text tone="muted" numberOfLines={1} className="text-center text-2xs">
         Nº {card.number}
       </Text>
     </Pressable>
   );
 }
-
-const styles = StyleSheet.create({
-  list: { padding: 12, gap: 10 },
-  column: { gap: 10 },
-  tile: { flex: 1 / 3, gap: 4 },
-  art: { width: '100%', aspectRatio: 0.72, borderRadius: 6, backgroundColor: '#0002' },
-  // Carta faltante fica esmaecida — a leitura de "o que falta" é visual, não textual.
-  missingArt: { opacity: 0.28 },
-  badge: {
-    position: 'absolute',
-    top: 4,
-    right: 4,
-    minWidth: 20,
-    paddingHorizontal: 5,
-    paddingVertical: 1,
-    borderRadius: 10,
-    alignItems: 'center',
-  },
-  badgeText: { color: '#fff', fontSize: 11, fontWeight: '800' },
-  number: { fontSize: 11, textAlign: 'center' },
-  completion: { padding: 12, borderRadius: 12, borderWidth: 1, gap: 8, marginBottom: 4 },
-  batch: { paddingVertical: 9, borderRadius: 8, borderWidth: 1, alignItems: 'center' },
-  completionRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
-  completionText: { fontSize: 15, fontWeight: '700' },
-  bar: { height: 6, borderRadius: 3, overflow: 'hidden' },
-  barFill: { height: '100%', borderRadius: 3 },
-  footer: { paddingVertical: 16 },
-});

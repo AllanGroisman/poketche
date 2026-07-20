@@ -10,6 +10,13 @@ out/
 apps/mobile/.expo/
 apps/mobile/web-build/
 
+# Nativo gerado pelo Expo (continuous native generation — regenerar com `expo prebuild`/`run:android`)
+apps/mobile/android/
+apps/mobile/ios/
+
+# Lockfile de npm — este monorepo usa pnpm; package-lock.json é acidente de `npx`/`npm`
+package-lock.json
+
 # Prisma
 apps/api/prisma/*.db
 

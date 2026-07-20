@@ -1,6 +1,6 @@
-import { Image, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Image, ScrollView } from 'react-native';
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
-import { AsyncBoundary, Screen, useThemeColors } from '@/components';
+import { AsyncBoundary, Screen, Text, Card, Button } from '@/components';
 import { useAsync } from '@/lib/useAsync';
 import { formatBRL, formatBRLDelta, formatRelative } from '@/lib/format';
 import { imageUrl } from '@/services/api';
@@ -34,7 +34,6 @@ export default function CardDetailScreen() {
 }
 
 function CardBody({ card }: { card: CardDetail }) {
-  const c = useThemeColors();
   const router = useRouter();
   const { session } = useSession();
 
@@ -63,36 +62,40 @@ function CardBody({ card }: { card: CardDetail }) {
   };
 
   return (
-    <ScrollView contentContainerStyle={styles.container}>
+    <ScrollView contentContainerStyle={{ padding: 16, gap: 8, paddingBottom: 32 }}>
       <Image
         source={{ uri: imageUrl(card.image_large_url) }}
-        style={styles.art}
+        className="mb-2 h-[380px] w-full"
         resizeMode="contain"
       />
 
-      <Text style={[styles.name, { color: c.text }]}>{card.name}</Text>
-      <Text style={[styles.meta, { color: c.muted }]}>
+      <Text weight="extrabold" className="text-2xl">
+        {card.name}
+      </Text>
+      <Text tone="muted" className="text-sm">
         {card.set.name} · Nº {card.number} · {card.rarity}
       </Text>
-      <Text style={[styles.meta, { color: c.muted }]}>
+      <Text tone="muted" className="text-sm">
         {card.supertype}
         {card.types.length ? ` · ${card.types.join(', ')}` : ''}
         {card.subtypes.length ? ` · ${card.subtypes.join(', ')}` : ''}
       </Text>
 
-      <View style={[styles.box, { borderColor: c.border, backgroundColor: c.card }]}>
-        <Text style={[styles.boxLabel, { color: c.muted }]}>Preço de mercado</Text>
+      <Card pad="md" className="mt-2 gap-0.5">
+        <Text tone="muted" className="text-xs">
+          Preço de mercado
+        </Text>
         {card.market_price ? (
           <>
-            <Text style={[styles.price, { color: c.text }]}>
+            <Text weight="extrabold" className="text-2xl">
               {formatBRL(card.market_price.price_cents)}
             </Text>
-            <Text style={[styles.meta, { color: c.muted }]}>
+            <Text tone="muted" className="text-sm">
               {SOURCE_LABELS[card.market_price.source]} ·{' '}
               {formatRelative(card.market_price.fetched_at)}
             </Text>
             {/* Sem contexto de item, o preço precisa dizer a que condição/variante se refere. */}
-            <Text style={[styles.meta, { color: c.muted }]}>
+            <Text tone="muted" className="text-sm">
               {VARIANT_LABELS[card.market_price.variant]}
               {card.market_price.condition
                 ? ` · ${CONDITION_LABELS[card.market_price.condition]}`
@@ -100,51 +103,53 @@ function CardBody({ card }: { card: CardDetail }) {
             </Text>
           </>
         ) : (
-          <Text style={[styles.unpriced, { color: c.muted }]}>Sem cotação disponível</Text>
+          <Text tone="muted" className="text-base italic">
+            Sem cotação disponível
+          </Text>
         )}
 
         {card.change_30d ? (
           <Text
-            style={[
-              styles.change,
-              { color: card.change_30d.change_cents >= 0 ? c.success : c.danger },
-            ]}
+            weight="bold"
+            tone={card.change_30d.change_cents >= 0 ? 'success' : 'danger'}
+            className="mt-1 text-sm"
           >
             {formatBRLDelta(card.change_30d.change_cents)} ({card.change_30d.change_pct}%) em 30d
           </Text>
         ) : (
-          <Text style={[styles.meta, { color: c.muted }]}>
+          <Text tone="muted" className="text-sm">
             {card.history_available ? 'Variação de 30d indisponível' : 'Histórico indisponível'}
           </Text>
         )}
-      </View>
+      </Card>
 
       {session ? (
-        <View style={[styles.box, { borderColor: c.border, backgroundColor: c.card }]}>
-          <Text style={[styles.boxLabel, { color: c.muted }]}>Na sua coleção</Text>
-          <Text style={[styles.price, { color: c.text }]}>
+        <Card pad="md" className="gap-0.5">
+          <Text tone="muted" className="text-xs">
+            Na sua coleção
+          </Text>
+          <Text weight="extrabold" className="text-2xl">
             {copies > 0 ? `${copies} ${copies === 1 ? 'cópia' : 'cópias'}` : 'Nenhuma'}
           </Text>
-        </View>
+        </Card>
       ) : null}
 
-      <Pressable
-        accessibilityRole="button"
+      <Button
+        title="Adicionar à coleção"
+        size="lg"
+        fullWidth
         onPress={addToCollection}
-        style={[styles.cta, { backgroundColor: c.primary }]}
-      >
-        <Text style={styles.ctaText}>Adicionar à coleção</Text>
-      </Pressable>
-
-      <Pressable
-        accessibilityRole="button"
+        className="mt-3"
+      />
+      <Button
+        title="Adicionar à wishlist"
+        variant="outline"
+        size="lg"
+        fullWidth
         onPress={addToWishlist}
-        style={[styles.ctaSecondary, { borderColor: c.primary }]}
-      >
-        <Text style={[styles.ctaText, { color: c.primary }]}>Adicionar à wishlist</Text>
-      </Pressable>
+      />
 
-      <Text style={[styles.meta, { color: c.muted }]}>
+      <Text tone="muted" className="text-sm">
         {activeListings > 0
           ? `${activeListings} ${activeListings === 1 ? 'anúncio ativo' : 'anúncios ativos'} no marketplace`
           : 'Nenhum anúncio ativo no marketplace'}
@@ -152,29 +157,3 @@ function CardBody({ card }: { card: CardDetail }) {
     </ScrollView>
   );
 }
-
-const styles = StyleSheet.create({
-  container: { padding: 16, gap: 6 },
-  art: { width: '100%', height: 380, marginBottom: 8 },
-  name: { fontSize: 24, fontWeight: '800' },
-  meta: { fontSize: 13 },
-  box: { marginTop: 10, padding: 12, borderRadius: 12, borderWidth: 1, gap: 2 },
-  boxLabel: { fontSize: 12 },
-  price: { fontSize: 26, fontWeight: '800' },
-  unpriced: { fontSize: 15, fontStyle: 'italic' },
-  change: { fontSize: 13, fontWeight: '700', marginTop: 4 },
-  cta: {
-    marginTop: 14,
-    paddingVertical: 13,
-    borderRadius: 10,
-    alignItems: 'center',
-  },
-  ctaSecondary: {
-    marginTop: 8,
-    paddingVertical: 13,
-    borderRadius: 10,
-    borderWidth: 1,
-    alignItems: 'center',
-  },
-  ctaText: { color: '#fff', fontSize: 15, fontWeight: '700' },
-});

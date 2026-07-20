@@ -23,7 +23,17 @@
           "cameraPermissionText": "O PokeTche usa a câmera para escanear suas cartas e adicioná-las à coleção.",
           "enableMicrophonePermission": false
         }
-      ]
+      ],
+      "expo-video",
+      [
+        "expo-media-library",
+        {
+          "photosPermission": "O PokeTche precisa de acesso para salvar o vídeo da sua sessão de escaneamento.",
+          "savePhotosPermission": "O PokeTche salva o vídeo da sua sessão de escaneamento na sua galeria.",
+          "isAccessMediaLocationEnabled": false
+        }
+      ],
+      "expo-font"
     ],
     "extra": {
       "apiBaseUrl": "http://localhost:3000/api/v1",
