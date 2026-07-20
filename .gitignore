@@ -10,8 +10,7 @@ out/
 apps/mobile/.expo/
 apps/mobile/web-build/
 
-# Nativo gerado pelo Expo (continuous native generation — regenerar com `expo prebuild`/`run:android`)
-apps/mobile/android/
+# Projeto nativo iOS gerado pelo Expo (o Android é versionado — o build EAS precisa dele; ver .npmrc)
 apps/mobile/ios/
 
 # Lockfile de npm — este monorepo usa pnpm; package-lock.json é acidente de `npx`/`npm`
