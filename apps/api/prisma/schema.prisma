@@ -185,7 +185,9 @@ model Card {
   wishlistItems   WishlistItem[]
   scanCaptures    ScanCapture[]
 
-  @@unique([setId, number])
+  // Índice (não único): sets especiais (ex.: Celebrations Classic Collection, Black Bolt)
+  // reusam o mesmo `number` dentro do set na pokemontcg.io. A identidade real é externalId.
+  @@index([setId, number])
   @@index([rarity])
   @@index([types], type: Gin)
   @@map("card")

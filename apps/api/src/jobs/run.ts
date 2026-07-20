@@ -1,6 +1,6 @@
 import { loadConfig } from '../lib/config.js';
 import { prisma } from '../lib/prisma.js';
-import { createCatalogProvider } from '../integrations/catalog/index.js';
+import { createCatalogProvider, createHttpJson } from '../integrations/catalog/index.js';
 import { createImageStore } from '../integrations/storage/r2.js';
 import { createPriceResolver } from '../integrations/pricing/index.js';
 import { runCatalogSync } from './catalog-sync.js';
@@ -34,7 +34,10 @@ async function main(): Promise<void> {
 
   switch (job) {
     case 'catalog-sync': {
-      const provider = createCatalogProvider(config);
+      const provider = createCatalogProvider(
+        config,
+        createHttpJson(config.CATALOG_HTTP_TIMEOUT_MS),
+      );
       const result = await runCatalogSync(
         { provider, prisma, logger },
         {

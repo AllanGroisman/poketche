@@ -21,6 +21,9 @@ const schema = z.object({
   // Integrações externas — preenchidas conforme as fases avançam.
   POKEMONTCG_API_KEY: z.string().optional(),
   TCGDEX_BASE_URL: z.string().url().default('https://api.tcgdex.net/v2'),
+  // Timeout das chamadas HTTP de catálogo. A pokemontcg.io oscila muito; páginas de 250
+  // registros podem levar dezenas de segundos, então o default é generoso (60s).
+  CATALOG_HTTP_TIMEOUT_MS: z.coerce.number().int().positive().default(60000),
 
   // Precificação (US3). A fonte internacional (USD + PTAX) é a base do dia 1; a coleta da
   // Liga permanece DESLIGADA por padrão até o parecer legal (T034) — flag por string para
