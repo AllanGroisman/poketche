@@ -9,10 +9,25 @@
     "newArchEnabled": true,
     "ios": {
       "supportsTablet": false,
-      "bundleIdentifier": "com.poketche.app"
+      "bundleIdentifier": "com.poketche.app",
+      "infoPlist": {
+        "NSCameraUsageDescription": "O PokeTche usa a câmera para escanear suas cartas e adicioná-las à coleção."
+      },
+      "runtimeVersion": {
+        "policy": "appVersion"
+      }
     },
     "android": {
-      "package": "com.poketche.app"
+      "package": "com.poketche.app",
+      "permissions": [
+        "android.permission.CAMERA",
+        "android.permission.READ_EXTERNAL_STORAGE",
+        "android.permission.WRITE_EXTERNAL_STORAGE",
+        "android.permission.CAMERA",
+        "android.permission.READ_EXTERNAL_STORAGE",
+        "android.permission.WRITE_EXTERNAL_STORAGE"
+      ],
+      "runtimeVersion": "1.0.0"
     },
     "plugins": [
       "expo-router",
@@ -38,7 +53,17 @@
     "extra": {
       "apiBaseUrl": "http://192.168.0.197:3000/api/v1",
       "supabaseUrl": "https://wdzdsujbhqwnxphlxvwe.supabase.co",
-      "supabasePublishableKey": "sb_publishable_3Vl98hNaNcRUn0AdBN6PQg_K5t7pNWX"
+      "supabasePublishableKey": "sb_publishable_3Vl98hNaNcRUn0AdBN6PQg_K5t7pNWX",
+      "router": {
+        "origin": false
+      },
+      "eas": {
+        "projectId": "fca95d76-73cd-4772-9599-a1a14029a8b8"
+      }
+    },
+    "owner": "allangroisman",
+    "updates": {
+      "url": "https://u.expo.dev/fca95d76-73cd-4772-9599-a1a14029a8b8"
     }
   }
 }
