@@ -1,5 +1,5 @@
 import { randomUUID } from 'node:crypto';
-import { PrismaClient } from '@prisma/client';
+import { type Condition, PrismaClient } from '@prisma/client';
 import type { FastifyInstance } from 'fastify';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { buildApp } from '../../src/app.js';
@@ -53,9 +53,15 @@ async function makeCard(setId: string, number: string, name: string): Promise<st
   return card.id;
 }
 
-async function makeItem(cardId: string, quantity: number): Promise<string> {
+// `condition` discrimina a posição: o inventário é único por
+// (user, card, condition, language, variant), então reusar a mesma carta exige variar a condição.
+async function makeItem(
+  cardId: string,
+  quantity: number,
+  condition: Condition = 'near_mint',
+): Promise<string> {
   const item = await prisma.collectionItem.create({
-    data: { userId, cardId, condition: 'near_mint', language: 'en', variant: 'normal', quantity },
+    data: { userId, cardId, condition, language: 'en', variant: 'normal', quantity },
   });
   return item.id;
 }
@@ -234,7 +240,8 @@ describe('US2 — vínculos M-N (FR-006..011)', () => {
 
   it('remover o item do inventário remove os vínculos em cascata (FR-011)', async () => {
     const id = await createCollection(`Cascata ${tok}`);
-    const temp = await makeItem(cards.b, 1);
+    // Posição descartável: `good` a distingue de items.b (mesma carta, near_mint).
+    const temp = await makeItem(cards.b, 1, 'good');
     await req('POST', `/collections/${id}/items`, { collection_item_id: temp });
     expect((await req('GET', `/collections/${id}`)).json().items).toHaveLength(1);
 

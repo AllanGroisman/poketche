@@ -41,7 +41,7 @@ description: 'Task list — Coleções Personalizadas'
 **⚠️ CRITICAL**: Nenhuma user story começa antes desta fase.
 
 - [X] T003 Adicionar os models `Collection` e `CollectionMembership` + relações inversas (`UserProfile.collections`, `CollectionItem.memberships`) em `apps/api/prisma/schema.prisma`, conforme data-model.md (sem alterar colunas/uniques de `collection_item`)
-- [ ] T004 Gerar e aplicar a migração: `pnpm --filter api prisma migrate dev --name custom_collections` (cria `apps/api/prisma/migrations/<ts>_custom_collections/migration.sql`; só CREATE TABLE + FKs/uniques/índices)
+- [X] T004 Gerar e aplicar a migração: `apps/api/prisma/migrations/20260720130000_custom_collections/migration.sql` (só CREATE TABLE + FKs/uniques/índices). Aplicada com `prisma migrate deploy`, **não** `migrate dev`: o SQL manual em `prisma/manual/` faz o `migrate dev` acusar drift e propor reset (dropa o catálogo já sincronizado)
 - [X] T005 [P] Exportar `serialize` em `apps/api/src/modules/collection/routes.ts` (tornar público, sem mudar lógica) para reuso na listagem do recorte
 - [X] T006 [P] Adicionar helper `ownedCollection(prisma, id, userId)` (espelha `ownedWishlist`, 404 opaco) em `apps/api/src/modules/collections/routes.ts`
 - [X] T007 Registrar `registerCustomCollections` em `apps/api/src/app.ts` dentro do escopo `/api/v1`
@@ -162,7 +162,7 @@ description: 'Task list — Coleções Personalizadas'
 - [X] T035 [P] Teste de unidade fixando `summary` do recorte == `overview()` sobre um fixture (guarda contra drift de valoração) em `apps/api/test/collections-valuation.unit.test.ts`
 - [X] T036 Regressão: confirmar que `GET /stats/overview` e o job `collection-value-snapshot` continuam inalterados após operações de pasta (nenhuma referência a pastas no caminho do dashboard)
 - [X] T037 [P] Atualizar a doc de contrato REST do projeto (`specs/001-poketche-app/contracts/rest-api.md` ou equivalente) com os endpoints novos, mantendo paridade snake_case
-- [ ] T038 Rodar a validação completa do `quickstart.md` (cenários 1–5) ponta-a-ponta
+- [X] T038 Rodar a validação completa do `quickstart.md` (cenários 1–5) ponta-a-ponta — harness repetível em `apps/api/scripts/quickstart-e2e.ts` (`pnpm --filter api exec tsx scripts/quickstart-e2e.ts`): sobe a API real contra o banco de dev sob usuário e2e efêmero, 29/29 verificações. Passos de UI do cenário 4 (2 e 4) conferidos por inspeção de código, não por execução do app
 
 ---
 
