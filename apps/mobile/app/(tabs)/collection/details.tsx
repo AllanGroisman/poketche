@@ -1,4 +1,4 @@
-import { Image, ScrollView, View } from 'react-native';
+import { Alert, Image, ScrollView, View } from 'react-native';
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
 import { AsyncBoundary, EmptyState, Screen, Text, Card, Button } from '@/components';
 import { useAsync } from '@/lib/useAsync';
@@ -12,6 +12,7 @@ import {
   getItemDetails,
   type ItemDetails,
 } from '@/features/collection/api';
+import { addToCollection, getCollections } from '@/features/collections/api';
 
 /**
  * Tela de detalhes por carta da coleção (US8, FR-038–FR-042): preço atual, valor da posição,
@@ -34,6 +35,41 @@ export default function DetailsScreen() {
 function DetailsBody({ details, itemId }: { details: ItemDetails; itemId: string }) {
   const router = useRouter();
   const { card, item } = details;
+
+  // Vincular esta posição do inventário a uma coleção personalizada (US2). O `itemId` é o id do
+  // collection_item — exatamente o que o vínculo referencia.
+  async function onAddToCollection() {
+    try {
+      const { collections } = await getCollections();
+      if (collections.length === 0) {
+        Alert.alert(
+          'Nenhuma coleção',
+          'Crie uma coleção na aba Coleção para organizar suas cartas.',
+        );
+        return;
+      }
+      Alert.alert('Adicionar a uma coleção', 'Escolha a coleção:', [
+        ...collections.map((c) => ({
+          text: c.name,
+          onPress: async () => {
+            try {
+              await addToCollection(c.id, itemId);
+              Alert.alert('Pronto', `Carta adicionada a "${c.name}".`);
+            } catch (err) {
+              Alert.alert(
+                'Não foi possível adicionar',
+                err instanceof Error ? err.message : 'Tente de novo.',
+              );
+            }
+          },
+        })),
+        { text: 'Cancelar', style: 'cancel' as const },
+      ]);
+    } catch (err) {
+      Alert.alert('Erro', err instanceof Error ? err.message : 'Tente de novo.');
+    }
+  }
+
   if (!card) return <EmptyState title="Carta não encontrada" />;
 
   return (
@@ -74,12 +110,20 @@ function DetailsBody({ details, itemId }: { details: ItemDetails; itemId: string
 
       <PriceHistory details={details} />
 
-      <Button
-        title="Editar item"
-        variant="outline"
-        fullWidth
-        onPress={() => router.push({ pathname: '/collection/item', params: { itemId } })}
-      />
+      <View className="gap-2.5">
+        <Button
+          title="Adicionar a uma coleção"
+          variant="secondary"
+          fullWidth
+          onPress={onAddToCollection}
+        />
+        <Button
+          title="Editar item"
+          variant="outline"
+          fullWidth
+          onPress={() => router.push({ pathname: '/collection/item', params: { itemId } })}
+        />
+      </View>
     </ScrollView>
   );
 }

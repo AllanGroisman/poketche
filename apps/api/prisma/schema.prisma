@@ -230,6 +230,7 @@ model UserProfile {
   seller         SellerProfile?
   addresses      UserAddress[]
   collectionItems CollectionItem[]
+  collections    Collection[]
   valueSnapshots CollectionValueSnapshot[]
   wishlists      Wishlist[]
   scanSessions   ScanSession[]
@@ -308,6 +309,7 @@ model CollectionItem {
   user UserProfile @relation(fields: [userId], references: [id], onDelete: Cascade)
   card Card        @relation(fields: [cardId], references: [id])
   listings Listing[]
+  memberships CollectionMembership[]
 
   @@unique([userId, cardId, condition, language, variant])
   @@index([userId])
@@ -360,6 +362,51 @@ model CollectionValueSnapshot {
 
   @@index([userId, takenAt])
   @@map("collection_value_snapshot")
+}
+
+// ==================== Coleções personalizadas (US 002) ====================
+
+/**
+ * Pasta de organização nomeada — um recorte do inventário do usuário (feature 002). Não contém
+ * cartas: agrega vínculos a `collection_item`. Excluir a pasta apaga só os vínculos, nunca os
+ * itens. Compartilhamento público por pasta reusa o mesmo conceito da US7 (CollectionVisibility).
+ */
+model Collection {
+  id             String           @id @default(uuid()) @db.Uuid
+  userId         String           @map("user_id") @db.Uuid
+  name           String
+  status         VisibilityStatus @default(private)
+  shareToken     String?          @unique @map("share_token")
+  showCards      Boolean          @default(true) @map("show_cards")
+  showValues     Boolean          @default(false) @map("show_values")
+  showQuantities Boolean          @default(false) @map("show_quantities")
+  createdAt      DateTime         @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt      DateTime         @updatedAt @map("updated_at") @db.Timestamptz
+
+  user        UserProfile            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  memberships CollectionMembership[]
+
+  @@index([userId])
+  @@map("collection")
+}
+
+/**
+ * Vínculo M-N entre uma pasta e uma posição do inventário (`collection_item`). Único por
+ * (pasta, item). Cascata dupla: some quando a pasta é excluída OU quando o item sai do inventário
+ * — nunca o contrário (remover o vínculo não toca no item).
+ */
+model CollectionMembership {
+  id               String   @id @default(uuid()) @db.Uuid
+  collectionId     String   @map("collection_id") @db.Uuid
+  collectionItemId String   @map("collection_item_id") @db.Uuid
+  createdAt        DateTime @default(now()) @map("created_at") @db.Timestamptz
+
+  collection     Collection     @relation(fields: [collectionId], references: [id], onDelete: Cascade)
+  collectionItem CollectionItem @relation(fields: [collectionItemId], references: [id], onDelete: Cascade)
+
+  @@unique([collectionId, collectionItemId])
+  @@index([collectionItemId])
+  @@map("collection_membership")
 }
 
 // ==================== Wishlists ====================

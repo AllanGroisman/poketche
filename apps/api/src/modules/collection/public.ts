@@ -19,9 +19,17 @@ import { includeCard, type ItemWithCard } from './routes.js';
  * fora — a visão pública não é a listagem autenticada com campos apagados (LGPD, constituição).
  */
 
-type VisibilityFlags = Pick<CollectionVisibility, 'showCards' | 'showValues' | 'showQuantities'>;
+export type VisibilityFlags = Pick<
+  CollectionVisibility,
+  'showCards' | 'showValues' | 'showQuantities'
+>;
 
-function publicItem(item: ItemWithCard, prices: PriceLike[], flags: VisibilityFlags) {
+/**
+ * Renderiza um item na visão pública, respeitando as flags do dono. Exportado para reuso pela
+ * visão pública das coleções personalizadas (feature 002), garantindo o mesmo tratamento de
+ * privacidade (sem preço de aquisição, sem id de item) nos dois compartilhamentos.
+ */
+export function publicItem(item: ItemWithCard, prices: PriceLike[], flags: VisibilityFlags) {
   const display = localize(item.card.translations, item.language);
   const price = flags.showValues ? selectCurrentPrice(prices, item) : null;
   return {
@@ -45,7 +53,7 @@ function publicItem(item: ItemWithCard, prices: PriceLike[], flags: VisibilityFl
 }
 
 /** Total e contagens agregados (FR-003b): só quando o dono autoriza valores (cenário 2/3). */
-function buildSummary(items: ItemWithCard[], pricesByCard: Map<string, PriceLike[]>) {
+export function buildSummary(items: ItemWithCard[], pricesByCard: Map<string, PriceLike[]>) {
   let totalCents = 0;
   let pricedItems = 0;
   let unpricedItems = 0;

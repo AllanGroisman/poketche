@@ -11,6 +11,9 @@ import { registerCatalogCompletion } from './modules/catalog/completion.js';
 import { registerCollection } from './modules/collection/routes.js';
 import { registerCollectionDetails } from './modules/collection/details.js';
 import { registerCollectionPublic } from './modules/collection/public.js';
+import { registerCustomCollections } from './modules/collections/routes.js';
+import { registerCustomCollectionShare } from './modules/collections/share.js';
+import { registerCustomCollectionsPublic } from './modules/collections/public.js';
 import { registerStats } from './modules/stats/routes.js';
 import { registerWishlists } from './modules/wishlist/routes.js';
 import { registerAccount } from './modules/account/index.js';
@@ -65,6 +68,12 @@ export async function buildApp(
       registerCollection(scope, prisma);
       registerCollectionDetails(scope, prisma);
       registerCollectionPublic(scope, prisma);
+      registerCustomCollections(scope, prisma);
+      registerCustomCollectionShare(scope, {
+        prisma,
+        shareLinkBaseUrl: config.SHARE_LINK_BASE_URL,
+      });
+      registerCustomCollectionsPublic(scope, prisma);
       registerStats(scope, prisma);
       registerWishlists(scope, prisma);
       registerAccount(scope, {

@@ -66,7 +66,11 @@ export type ItemWithCard = Prisma.CollectionItemGetPayload<{
   };
 }>;
 
-function serialize(item: ItemWithCard, prices?: PriceLike[], snapshots?: SnapshotLike[]) {
+/**
+ * Serializa um item da coleção no shape público da listagem (reusado pelo recorte das coleções
+ * personalizadas — feature 002 — para não haver drift entre a listagem do inventário e a da pasta).
+ */
+export function serialize(item: ItemWithCard, prices?: PriceLike[], snapshots?: SnapshotLike[]) {
   const display = localize(item.card.translations, item.language);
   // Preço vigente + valor da posição (FR-039); item sem cotação fica com price/valor nulos.
   const price = prices ? selectCurrentPrice(prices, item) : null;

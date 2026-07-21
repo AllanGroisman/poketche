@@ -29,8 +29,8 @@ description: 'Task list — Coleções Personalizadas'
 
 **Purpose**: Esqueleto dos novos módulos, sem lógica.
 
-- [ ] T001 [P] Criar módulo backend `apps/api/src/modules/collections/routes.ts` exportando um stub `registerCustomCollections(app, prisma)` (vazio), separado do `collection/` singular (inventário)
-- [ ] T002 [P] Criar feature mobile `apps/mobile/src/features/collections/api.ts` com os tipos `Collection`, `CollectionSummary`, `CollectionSliceItem` e stubs sobre `apiRequest`
+- [X] T001 [P] Criar módulo backend `apps/api/src/modules/collections/routes.ts` exportando um stub `registerCustomCollections(app, prisma)` (vazio), separado do `collection/` singular (inventário)
+- [X] T002 [P] Criar feature mobile `apps/mobile/src/features/collections/api.ts` com os tipos `Collection`, `CollectionSummary`, `CollectionSliceItem` e stubs sobre `apiRequest`
 
 ---
 
@@ -40,11 +40,11 @@ description: 'Task list — Coleções Personalizadas'
 
 **⚠️ CRITICAL**: Nenhuma user story começa antes desta fase.
 
-- [ ] T003 Adicionar os models `Collection` e `CollectionMembership` + relações inversas (`UserProfile.collections`, `CollectionItem.memberships`) em `apps/api/prisma/schema.prisma`, conforme data-model.md (sem alterar colunas/uniques de `collection_item`)
+- [X] T003 Adicionar os models `Collection` e `CollectionMembership` + relações inversas (`UserProfile.collections`, `CollectionItem.memberships`) em `apps/api/prisma/schema.prisma`, conforme data-model.md (sem alterar colunas/uniques de `collection_item`)
 - [ ] T004 Gerar e aplicar a migração: `pnpm --filter api prisma migrate dev --name custom_collections` (cria `apps/api/prisma/migrations/<ts>_custom_collections/migration.sql`; só CREATE TABLE + FKs/uniques/índices)
-- [ ] T005 [P] Exportar `serialize` em `apps/api/src/modules/collection/routes.ts` (tornar público, sem mudar lógica) para reuso na listagem do recorte
-- [ ] T006 [P] Adicionar helper `ownedCollection(prisma, id, userId)` (espelha `ownedWishlist`, 404 opaco) em `apps/api/src/modules/collections/routes.ts`
-- [ ] T007 Registrar `registerCustomCollections` em `apps/api/src/app.ts` dentro do escopo `/api/v1`
+- [X] T005 [P] Exportar `serialize` em `apps/api/src/modules/collection/routes.ts` (tornar público, sem mudar lógica) para reuso na listagem do recorte
+- [X] T006 [P] Adicionar helper `ownedCollection(prisma, id, userId)` (espelha `ownedWishlist`, 404 opaco) em `apps/api/src/modules/collections/routes.ts`
+- [X] T007 Registrar `registerCustomCollections` em `apps/api/src/app.ts` dentro do escopo `/api/v1`
 
 **Checkpoint**: Fundação pronta — as user stories podem começar.
 
@@ -58,16 +58,16 @@ description: 'Task list — Coleções Personalizadas'
 
 ### Tests for User Story 1
 
-- [ ] T008 [P] [US1] Teste de integração CRUD + escopo de posse (404 opaco para pasta de outro) + exclusão de pasta não altera o `summary` do inventário, em `apps/api/test/collections-crud.test.ts`
+- [X] T008 [P] [US1] Teste de integração CRUD + escopo de posse (404 opaco para pasta de outro) + exclusão de pasta não altera o `summary` do inventário, em `apps/api/test/collections-crud.test.ts`
 
 ### Implementation for User Story 1
 
-- [ ] T009 [US1] Implementar `POST /collections` (Zod `name` 1–60, trim; 201) em `apps/api/src/modules/collections/routes.ts`
-- [ ] T010 [US1] Implementar `GET /collections` básico (id, name, item_count via `_count`, created_at) em `apps/api/src/modules/collections/routes.ts`
-- [ ] T011 [US1] Implementar `PATCH /collections/:id` (rename via `ownedCollection`) em `apps/api/src/modules/collections/routes.ts`
-- [ ] T012 [US1] Implementar `DELETE /collections/:id` (`deleteMany` escopo do dono; cascata só em `collection_membership`) em `apps/api/src/modules/collections/routes.ts`
-- [ ] T013 [P] [US1] Adicionar `getCollections/createCollection/renameCollection/deleteCollection` em `apps/mobile/src/features/collections/api.ts`
-- [ ] T014 [US1] Criar a lista de coleções com criar/renomear(long-press)/excluir em `apps/mobile/app/(tabs)/collection/index.tsx`, reusando `Input`/`Button`/`ListRow`/`AsyncBoundary` (espelha `app/(tabs)/wishlists/index.tsx`)
+- [X] T009 [US1] Implementar `POST /collections` (Zod `name` 1–60, trim; 201) em `apps/api/src/modules/collections/routes.ts`
+- [X] T010 [US1] Implementar `GET /collections` básico (id, name, item_count via `_count`, created_at) em `apps/api/src/modules/collections/routes.ts`
+- [X] T011 [US1] Implementar `PATCH /collections/:id` (rename via `ownedCollection`) em `apps/api/src/modules/collections/routes.ts`
+- [X] T012 [US1] Implementar `DELETE /collections/:id` (`deleteMany` escopo do dono; cascata só em `collection_membership`) em `apps/api/src/modules/collections/routes.ts`
+- [X] T013 [P] [US1] Adicionar `getCollections/createCollection/renameCollection/deleteCollection` em `apps/mobile/src/features/collections/api.ts`
+- [X] T014 [US1] Criar a lista de coleções com criar/renomear(long-press)/excluir em `apps/mobile/app/(tabs)/collection/index.tsx`, reusando `Input`/`Button`/`ListRow`/`AsyncBoundary` (espelha `app/(tabs)/wishlists/index.tsx`)
 
 **Checkpoint**: US1 funcional e testável isolada.
 
@@ -81,14 +81,14 @@ description: 'Task list — Coleções Personalizadas'
 
 ### Tests for User Story 2
 
-- [ ] T015 [P] [US2] Teste de integração: vínculo idempotente, desvínculo, item em N pastas conta 1× no inventário, 404 de posse, e cascata (remover `collection_item` remove vínculos), em `apps/api/test/collections-membership.test.ts`
+- [X] T015 [P] [US2] Teste de integração: vínculo idempotente, desvínculo, item em N pastas conta 1× no inventário, 404 de posse, e cascata (remover `collection_item` remove vínculos), em `apps/api/test/collections-membership.test.ts`
 
 ### Implementation for User Story 2
 
-- [ ] T016 [US2] Implementar `POST /collections/:id/items` (`ownedCollection` + validar posse do `collection_item_id`; idempotente via `@@unique`/`skipDuplicates`) em `apps/api/src/modules/collections/routes.ts`
-- [ ] T017 [US2] Implementar `DELETE /collections/:id/items/:collectionItemId` (`deleteMany` por collection+item, idempotente) em `apps/api/src/modules/collections/routes.ts`
-- [ ] T018 [P] [US2] Adicionar `addToCollection/removeFromCollection` em `apps/mobile/src/features/collections/api.ts`
-- [ ] T019 [US2] Adicionar a ação "adicionar/remover de coleção" na tela de detalhe do item `apps/mobile/app/(tabs)/collection/details.tsx` (seletor das pastas do usuário)
+- [X] T016 [US2] Implementar `POST /collections/:id/items` (`ownedCollection` + validar posse do `collection_item_id`; idempotente via `@@unique`/`skipDuplicates`) em `apps/api/src/modules/collections/routes.ts`
+- [X] T017 [US2] Implementar `DELETE /collections/:id/items/:collectionItemId` (`deleteMany` por collection+item, idempotente) em `apps/api/src/modules/collections/routes.ts`
+- [X] T018 [P] [US2] Adicionar `addToCollection/removeFromCollection` em `apps/mobile/src/features/collections/api.ts`
+- [X] T019 [US2] Adicionar a ação "adicionar/remover de coleção" na tela de detalhe do item `apps/mobile/app/(tabs)/collection/details.tsx` (seletor das pastas do usuário)
 
 **Checkpoint**: US1 e US2 funcionam independentemente.
 
@@ -102,13 +102,13 @@ description: 'Task list — Coleções Personalizadas'
 
 ### Tests for User Story 3
 
-- [ ] T020 [P] [US3] Teste de integração: `GET /collections/:id` com itens no mesmo shape do inventário; `summary` == `overview()` manual (distinct/unidades/valor); item sem preço fora do total; dashboard `GET /stats/overview` inalterado após operações de pasta, em `apps/api/test/collections-slice.test.ts`
+- [X] T020 [P] [US3] Teste de integração: `GET /collections/:id` com itens no mesmo shape do inventário; `summary` == `overview()` manual (distinct/unidades/valor); item sem preço fora do total; dashboard `GET /stats/overview` inalterado após operações de pasta, em `apps/api/test/collections-slice.test.ts`
 
 ### Implementation for User Story 3
 
-- [ ] T021 [US3] Implementar `GET /collections/:id?sort=recent|oldest` (carregar `collection_item` vinculados com `includeCard`, serializar com o `serialize` reusado, resumo via `overview()` de `stats/valuation.ts`) em `apps/api/src/modules/collections/routes.ts`
-- [ ] T022 [P] [US3] Adicionar `getCollectionSlice(id, sort)` + tipos do item/summary em `apps/mobile/src/features/collections/api.ts`
-- [ ] T023 [US3] Criar a tela do recorte `apps/mobile/app/(tabs)/collection/folder.tsx` reusando a FlatList/linha/busca do inventário (`collection/index.tsx` original) e um cabeçalho de resumo com `formatBRL` (estilo `CollectionTotal`)
+- [X] T021 [US3] Implementar `GET /collections/:id?sort=recent|oldest` (carregar `collection_item` vinculados com `includeCard`, serializar com o `serialize` reusado, resumo via `overview()` de `stats/valuation.ts`) em `apps/api/src/modules/collections/routes.ts`
+- [X] T022 [P] [US3] Adicionar `getCollectionSlice(id, sort)` + tipos do item/summary em `apps/mobile/src/features/collections/api.ts`
+- [X] T023 [US3] Criar a tela do recorte `apps/mobile/app/(tabs)/collection/folder.tsx` reusando a FlatList/linha/busca do inventário (`collection/index.tsx` original) e um cabeçalho de resumo com `formatBRL` (estilo `CollectionTotal`)
 
 **Checkpoint**: US1–US3 independentes.
 
@@ -122,13 +122,13 @@ description: 'Task list — Coleções Personalizadas'
 
 ### Tests for User Story 4
 
-- [ ] T024 [P] [US4] Teste de integração: `GET /collections` retorna `summary` por pasta igual a `overview()` do recorte (sem N+1), em `apps/api/test/collections-hub.test.ts`
+- [X] T024 [P] [US4] Teste de integração: `GET /collections` retorna `summary` por pasta igual a `overview()` do recorte (sem N+1), em `apps/api/test/collections-hub.test.ts`
 
 ### Implementation for User Story 4
 
-- [ ] T025 [US4] Enriquecer `GET /collections` para incluir `summary` por pasta (carregamento agregado de memberships+itens+preços do usuário; `overview()` por pasta; sem N+1) em `apps/api/src/modules/collections/routes.ts`
-- [ ] T026 [US4] Extrair a listagem do inventário completo de `apps/mobile/app/(tabs)/collection/index.tsx` para `apps/mobile/app/(tabs)/collection/inventory.tsx` (mover sem alterar lógica; smoke test da listagem)
-- [ ] T027 [US4] Transformar `collection/index.tsx` no hub: pastas (nome, distinct·unidades, valor via `formatBRL`) + entrada "inventário completo", usando `apps/mobile/src/features/collections/CollectionRow.tsx` (novo, sobre `ListRow`)
+- [X] T025 [US4] Enriquecer `GET /collections` para incluir `summary` por pasta (carregamento agregado de memberships+itens+preços do usuário; `overview()` por pasta; sem N+1) em `apps/api/src/modules/collections/routes.ts`
+- [X] T026 [US4] Extrair a listagem do inventário completo de `apps/mobile/app/(tabs)/collection/index.tsx` para `apps/mobile/app/(tabs)/collection/inventory.tsx` (mover sem alterar lógica; smoke test da listagem)
+- [X] T027 [US4] Transformar `collection/index.tsx` no hub: pastas (nome, distinct·unidades, valor via `formatBRL`) + entrada "inventário completo", usando `apps/mobile/src/features/collections/CollectionRow.tsx` (novo, sobre `ListRow`)
 
 **Checkpoint**: US1–US4 independentes.
 
@@ -142,16 +142,16 @@ description: 'Task list — Coleções Personalizadas'
 
 ### Tests for User Story 5
 
-- [ ] T028 [P] [US5] Teste de integração: gerar/revogar link; visão pública respeita `show_cards/values/quantities`; token revogado ou pasta excluída → 404 opaco; sem vazamento de outras pastas/inventário, em `apps/api/test/collections-share.test.ts`
+- [X] T028 [P] [US5] Teste de integração: gerar/revogar link; visão pública respeita `show_cards/values/quantities`; token revogado ou pasta excluída → 404 opaco; sem vazamento de outras pastas/inventário, em `apps/api/test/collections-share.test.ts`
 
 ### Implementation for User Story 5
 
-- [ ] T029 [US5] Implementar `PUT /collections/:id/visibility` e `POST /collections/:id/share-link` (reusar `generateShareToken`, enum `VisibilityStatus`, serializer de `share_url`) em `apps/api/src/modules/collections/share.ts`
-- [ ] T030 [P] [US5] Extrair `publicItem`/`buildSummary` de `apps/api/src/modules/collection/public.ts` para um helper reutilizável (ou exportá-los), sem mudar o comportamento da rota da US7
-- [ ] T031 [US5] Implementar `GET /public/custom-collections/:shareToken` (sem auth, `Cache-Control: no-store`, 404 opaco, renderização reusada sobre os itens vinculados) em `apps/api/src/modules/collections/public.ts`
-- [ ] T032 [US5] Registrar `registerCustomCollectionShare` e `registerCustomCollectionsPublic` em `apps/api/src/app.ts`
-- [ ] T033 [P] [US5] Adicionar `getCollectionShare/setCollectionVisibility/generateShareLink/revokeShareLink` em `apps/mobile/src/features/collections/api.ts`
-- [ ] T034 [US5] Criar a tela de compartilhamento `apps/mobile/app/(tabs)/collection/folder-share.tsx` (toggles de flags, gerar/revogar, exibir/copiar `share_url`), espelhando `app/settings/visibility.tsx`
+- [X] T029 [US5] Implementar `PUT /collections/:id/visibility` e `POST /collections/:id/share-link` (reusar `generateShareToken`, enum `VisibilityStatus`, serializer de `share_url`) em `apps/api/src/modules/collections/share.ts`
+- [X] T030 [P] [US5] Extrair `publicItem`/`buildSummary` de `apps/api/src/modules/collection/public.ts` para um helper reutilizável (ou exportá-los), sem mudar o comportamento da rota da US7
+- [X] T031 [US5] Implementar `GET /public/custom-collections/:shareToken` (sem auth, `Cache-Control: no-store`, 404 opaco, renderização reusada sobre os itens vinculados) em `apps/api/src/modules/collections/public.ts`
+- [X] T032 [US5] Registrar `registerCustomCollectionShare` e `registerCustomCollectionsPublic` em `apps/api/src/app.ts`
+- [X] T033 [P] [US5] Adicionar `getCollectionShare/setCollectionVisibility/generateShareLink/revokeShareLink` em `apps/mobile/src/features/collections/api.ts`
+- [X] T034 [US5] Criar a tela de compartilhamento `apps/mobile/app/(tabs)/collection/folder-share.tsx` (toggles de flags, gerar/revogar, exibir/copiar `share_url`), espelhando `app/settings/visibility.tsx`
 
 **Checkpoint**: US1–US5 completas.
 
@@ -159,9 +159,9 @@ description: 'Task list — Coleções Personalizadas'
 
 ## Phase 8: Polish & Cross-Cutting Concerns
 
-- [ ] T035 [P] Teste de unidade fixando `summary` do recorte == `overview()` sobre um fixture (guarda contra drift de valoração) em `apps/api/test/collections-valuation.unit.test.ts`
-- [ ] T036 Regressão: confirmar que `GET /stats/overview` e o job `collection-value-snapshot` continuam inalterados após operações de pasta (nenhuma referência a pastas no caminho do dashboard)
-- [ ] T037 [P] Atualizar a doc de contrato REST do projeto (`specs/001-poketche-app/contracts/rest-api.md` ou equivalente) com os endpoints novos, mantendo paridade snake_case
+- [X] T035 [P] Teste de unidade fixando `summary` do recorte == `overview()` sobre um fixture (guarda contra drift de valoração) em `apps/api/test/collections-valuation.unit.test.ts`
+- [X] T036 Regressão: confirmar que `GET /stats/overview` e o job `collection-value-snapshot` continuam inalterados após operações de pasta (nenhuma referência a pastas no caminho do dashboard)
+- [X] T037 [P] Atualizar a doc de contrato REST do projeto (`specs/001-poketche-app/contracts/rest-api.md` ou equivalente) com os endpoints novos, mantendo paridade snake_case
 - [ ] T038 Rodar a validação completa do `quickstart.md` (cenários 1–5) ponta-a-ponta
 
 ---
